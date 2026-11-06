@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ssq-predictor · 页面设计书</title>
+<style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--surface-2:#21262d;--border:#30363d;
+  --text:#e6edf3;--muted:#8b949e;--brand:#7c6ff0;--brand-soft:#1a1759;
+  --accent:#2dd4bf;--warn:#f0a817;--danger:#f87171;--success:#34d399;--info:#60a5fa;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.7;padding:40px 20px}
+.wrap{max-width:1280px;margin:0 auto}
+h1{font-size:30px;background:linear-gradient(135deg,var(--brand),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+.subtitle{color:var(--muted);margin-bottom:32px;font-size:14px}
+h2{font-size:22px;margin:40px 0 16px;padding-bottom:10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+h2 .num{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--brand),var(--accent));color:#fff;font-size:13px;font-weight:700}
+h3{font-size:17px;margin:24px 0 12px;color:var(--accent)}
+h4{font-size:15px;margin:16px 0 8px;color:var(--text)}
+p,li{color:var(--muted);font-size:14px}
+ul{padding-left:22px}
+li{margin-bottom:4px}
+
+/* 信息架构卡片 */
+.ia-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin:16px 0}
+.ia-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+.ia-card .layer{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;margin-bottom:10px}
+.layer-data{background:rgba(96,165,250,.18);color:var(--info)}
+.layer-analysis{background:rgba(45,212,191,.18);color:var(--accent)}
+.layer-decision{background:rgba(240,168,23,.18);color:var(--warn)}
+.layer-global{background:rgba(139,148,158,.2);color:var(--muted)}
+.ia-card h4{margin:0 0 6px;color:var(--text)}
+.ia-card .pages{margin-top:10px;font-size:13px}
+.ia-card .pages span{display:inline-block;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:3px 10px;margin:3px 4px 3px 0;color:var(--text)}
+
+/* 页面设计卡片 */
+.page-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin:20px 0}
+.page-card .page-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.page-card .page-title{font-size:18px;font-weight:700;color:var(--text)}
+.page-card .page-route{font-family:'SF Mono','Consolas',monospace;font-size:12px;color:var(--accent);background:var(--bg);padding:3px 10px;border-radius:6px}
+.page-card .page-route::before{content:"/ "}
+.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600;margin-left:6px}
+.badge-2d{background:rgba(96,165,250,.18);color:var(--info)}
+.badge-3d{background:rgba(167,139,250,.2);color:#a78bfa}
+.badge-api{background:rgba(45,212,191,.18);color:var(--accent)}
+
+/* 布局线框图 */
+.wireframe{background:var(--bg);border:1px dashed var(--border);border-radius:10px;padding:16px;margin:12px 0;font-family:'SF Mono','Consolas',monospace;font-size:12px;color:var(--muted);line-height:1.9}
+.wireframe .zone{display:inline-block;padding:2px 8px;border-radius:4px;margin:2px}
+.z-header{background:rgba(124,111,240,.25);color:#b4aaff}
+.z-sidebar{background:rgba(45,212,191,.2);color:var(--accent)}
+.z-main{background:rgba(240,168,23,.2);color:var(--warn)}
+.z-card{background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:1px 8px;border-radius:4px}
+
+/* 表格 */
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
+th{text-align:left;padding:8px 12px;background:var(--surface-2);color:var(--text);border-bottom:1px solid var(--border);font-weight:600}
+td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--muted)}
+tr:hover td{background:var(--surface-2)}
+code{font-family:'SF Mono','Consolas',monospace;font-size:12px;color:var(--accent);background:var(--bg);padding:1px 6px;border-radius:4px}
+
+/* 组件库 */
+.comp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:12px 0}
+.comp-item{background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:12px}
+.comp-item .comp-name{font-weight:600;color:var(--text);font-size:13px;margin-bottom:4px}
+.comp-item .comp-desc{font-size:12px;color:var(--muted)}
+
+/* 免责 */
+.disclaimer{margin-top:40px;padding:16px;background:var(--brand-soft);border-left:3px solid var(--warn);border-radius:0 8px 8px 0;font-size:13px;color:var(--warn)}
+
+/* ===== 移动端响应式 ===== */
+@media (max-width: 768px){
+  body{padding:16px 12px}
+  .wrap{max-width:100%}
+  h1{font-size:22px}
+  h2{font-size:18px}
+  h3{font-size:16px}
+  .ia-grid{grid-template-columns:1fr}
+  .comp-grid{grid-template-columns:1fr 1fr}
+  .page-card{padding:16px}
+  .page-card .page-head{flex-direction:column;align-items:flex-start}
+  .wireframe{font-size:11px;overflow-x:auto;white-space:nowrap;padding:10px}
+  table{font-size:12px}
+  th,td{padding:6px 8px}
+  .table-scroll{overflow-x:auto}
+}
+@media (max-width: 480px){
+  .comp-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>ssq-predictor · 页面设计书</h1>
+<p class="subtitle">页面分类 · 布局结构 · 组件清单 · 数据流 · 交互规范 &nbsp;|&nbsp; v1.0 · 2026-11-06</p>
+
+<!-- ============== 1. 信息架构 ============== -->
+<h2><span class="num">1</span>信息架构与页面分类</h2>
+<p>按用户任务流分为四层：数据层 → 分析层 → 决策层，外加全局导航。共 6 个主页面。</p>
+
+<div class="ia-grid">
+  <div class="ia-card">
+    <span class="layer layer-data">数据层</span>
+    <h4>数据获取与查看</h4>
+    <p>从外部同步开奖数据到本地库，供下游分析。</p>
+    <div class="pages">
+      <span>历史开奖</span>
+      <span>数据同步</span>
+    </div>
+  </div>
+  <div class="ia-card">
+    <span class="layer layer-analysis">分析层</span>
+    <h4>多维度号码分析</h4>
+    <p>传统统计 + 形态可视化，从不同角度看号码规律。</p>
+    <div class="pages">
+      <span>统计分析</span>
+      <span>形态分析</span>
+    </div>
+  </div>
+  <div class="ia-card">
+    <span class="layer layer-decision">决策层</span>
+    <h4>选号与验证</h4>
+    <p>基于分析生成号码，并用历史回测验证策略有效性。</p>
+    <div class="pages">
+      <span>选号预测</span>
+      <span>回测</span>
+    </div>
+  </div>
+  <div class="ia-card">
+    <span class="layer layer-global">全局</span>
+    <h4>跨页面能力</h4>
+    <p>彩种切换、导航、免责声明、主题切换。</p>
+    <div class="pages">
+      <span>顶部导航</span>
+      <span>页脚</span>
+    </div>
+  </div>
+</div>
+
+<p>导航方式：顶部水平导航栏（Logo + 彩种切换 + 6 个页面入口），无侧边栏，最大化内容宽度。</p>
+
+<!-- ============== 1.5 页面清单与导航迁移路径 ============== -->
+<h2><span class="num">★</span>页面清单与导航迁移路径</h2>
+
+<h3>★.1 页面清单总览</h3>
+<table>
+<tr><th>序号</th><th>页面</th><th>路由</th><th>核心功能</th><th>主要显示内容</th></tr>
+<tr><td>1</td><td>历史开奖</td><td><code>/history</code></td><td>查看历史开奖数据</td><td>期号、日期、6红球+1蓝球、销售额、奖池、中奖注数</td></tr>
+<tr><td>2</td><td>数据同步</td><td><code>/sync</code></td><td>同步外部开奖到本地库</td><td>各彩种同步状态、最新期号、总条数、同步日志</td></tr>
+<tr><td>3</td><td>统计分析</td><td><code>/stats</code></td><td>传统多维度统计</td><td>频次/冷热/遗漏/奇偶/大小/区间/和值 图表</td></tr>
+<tr><td>4</td><td>形态分析</td><td><code>/visualizer</code></td><td>号码→图形可视化</td><td>算法清单(A-R)、2D/3D图形、图形特征、导出JSON</td></tr>
+<tr><td>5</td><td>选号预测</td><td><code>/predict</code></td><td>策略选号（含用户算法）</td><td>策略选择、生成注数、号码结果、冷热标记</td></tr>
+<tr><td>6</td><td>回测</td><td><code>/backtest</code></td><td>策略历史回测验证</td><td>命中分布、p-value结论、策略vs随机对比</td></tr>
+</table>
+
+<h3>★.2 导航结构图</h3>
+<div class="wireframe">
+<span class="zone z-header">顶部导航栏（全页面固定）</span><br>
+┌──────────────────────────────────────────────────────────────────────────┐<br>
+│  [Logo]  [彩种▾]   历史开奖 │ 统计分析 │ 形态分析 │ 选号预测 │ 回测 │ 数据同步  │<br>
+└──────────────────────────────────────────────────────────────────────────┘<br>
+<br>
+页面间无强制跳转顺序，任意页面可通过顶部导航直达。<br>
+彩种切换（双色球/大乐透/...）后，当前页面数据自动刷新为对应彩种。
+</div>
+
+<h3>★.3 用户旅程与迁移路径</h3>
+
+<h4>路径一：首次使用（数据准备）</h4>
+<div class="wireframe">
+<b>数据同步</b> ──点[同步]──► 等待进度条 ──► 看到"同步成功"<br>
+      │<br>
+      └─► <b>历史开奖</b> 验证数据是否入库
+</div>
+<p>用户首次进入系统 → 数据同步页 → 触发同步 → 确认数据入库 → 后续分析有数据基础。</p>
+
+<h4>路径二：传统分析选号</h4>
+<div class="wireframe">
+<b>统计分析</b>（看冷热/遗漏）<br>
+      │<br>
+      ▼<br>
+<b>选号预测</b>（选策略 → 生成号码）<br>
+      │<br>
+      ▼<br>
+<b>回测</b>（验证该策略历史命中率）
+</div>
+<p>分析号码规律 → 选策略生成号码 → 回测看策略是否值得用。</p>
+
+<h4>路径三：形态分析 + 自定义算法</h4>
+<div class="wireframe">
+<b>形态分析</b>（选算法 → 选期号范围 → 运行 → 看图形）<br>
+      │<br>
+      ▼<br>
+点[导出特征JSON] ──► 复制特征<br>
+      │<br>
+      ▼<br>
+<b>选号预测</b>（选择"用户自有算法"，将特征作为输入）
+</div>
+<p>用可视化算法把号码变成图形 → 提取图形特征 → 喂给自定义算法生成号码。</p>
+
+<h4>路径四：日常更新</h4>
+<div class="wireframe">
+新一期开奖后 → <b>数据同步</b>（手动同步该期）→ <b>历史开奖</b>（确认）→ 各分析页自动基于新数据
+</div>
+
+<h3>★.4 页面间数据传递</h3>
+<table>
+<tr><th>从</th><th>到</th><th>传递内容</th><th>方式</th></tr>
+<tr><td>数据同步</td><td>所有页面</td><td>更新后的开奖数据</td><td>全局状态（彩种+数据刷新）</td></tr>
+<tr><td>统计分析</td><td>选号预测</td><td>无直接传递，用户参考统计手动选策略</td><td>用户决策</td></tr>
+<tr><td>形态分析</td><td>选号预测</td><td>图形特征 JSON</td><td>剪贴板复制 → 粘贴到算法参数</td></tr>
+<tr><td>选号预测</td><td>回测</td><td>当前选中的策略名</td><td>URL query 或全局状态</td></tr>
+<tr><td>回测</td><td>选号预测</td><td>无（用户看完回测结果自行返回）</td><td>用户决策</td></tr>
+</table>
+
+<h3>★.5 交互状态规范</h3>
+<table>
+<tr><th>状态</th><th>表现</th><th>示例</th></tr>
+<tr><td>加载中</td><td>骨架屏 + 旋转指示器</td><td>同步时进度条、回测时加载动画</td></tr>
+<tr><td>空数据</td><td>空状态插画 + "暂无数据，请到数据同步页拉取"提示</td><td>历史开奖首次进入无数据</td></tr>
+<tr><td>操作成功</td><td>绿色 Toast 提示，2s 自动消失</td><td>同步完成、号码生成成功</td></tr>
+<tr><td>操作失败</td><td>红色 Toast + 可展开错误详情</td><td>同步失败、接口报错</td></tr>
+<tr><td>待实现</td><td>灰色占位卡 + "开发中"徽章</td><td>形态分析中未实现的算法</td></tr>
+</table>
+
+<!-- ============== 2. 全局设计系统 ============== -->
+<h2><span class="num">2</span>全局设计系统</h2>
+
+<h3>2.1 色彩体系（暗色主题）</h3>
+<table>
+  <tr><th>用途</th><th>色值</th><th>说明</th></tr>
+  <tr><td>背景</td><td><code>#0d1117</code></td><td>页面底色</td></tr>
+  <tr><td>卡片面</td><td><code>#161b22</code></td><td>内容卡片背景</td></tr>
+  <tr><td>次级面</td><td><code>#21262d</code></td><td>卡片内嵌区域</td></tr>
+  <tr><td>边框</td><td><code>#30363d</code></td><td>统一描边</td></tr>
+  <tr><td>主文字</td><td><code>#e6edf3</code></td><td>标题/正文</td></tr>
+  <tr><td>辅助文字</td><td><code>#8b949e</code></td><td>说明/次要信息</td></tr>
+  <tr><td>品牌色</td><td><code>#7c6ff0</code></td><td>主按钮/链接/高亮</td></tr>
+  <tr><td>强调色</td><td><code>#2dd4bf</code></td><td>成功/数据高亮</td></tr>
+  <tr><td>红球</td><td><code>#ef4444</code></td><td>红球号</td></tr>
+  <tr><td>蓝球</td><td><code>#3b82f6</code></td><td>蓝球号</td></tr>
+</table>
+
+<h3>2.2 字号与间距</h3>
+<table>
+  <tr><th>层级</th><th>字号</th><th>用途</th></tr>
+  <tr><td>H1</td><td>28-32px</td><td>页面标题</td></tr>
+  <tr><td>H2</td><td>20-22px</td><td>区块标题</td></tr>
+  <tr><td>H3</td><td>16-17px</td><td>卡片标题</td></tr>
+  <tr><td>正文</td><td>14px</td><td>主要内容</td></tr>
+  <tr><td>辅助</td><td>12-13px</td><td>标签/说明</td></tr>
+  <tr><td>代码</td><td>12px 等宽</td><td>期号/接口</td></tr>
+</table>
+<p>间距基准 4px：卡片内边距 20-24px，区块间距 16-24px，圆角 8-12px。</p>
+
+<h3>2.3 可复用组件库</h3>
+<div class="comp-grid">
+  <div class="comp-item"><div class="comp-name">Ball 球号</div><div class="comp-desc">红/蓝圆点球号，径向渐变立体感，支持大小变体</div></div>
+  <div class="comp-item"><div class="comp-name">NumberMatrix 球盘</div><div class="comp-desc">33×16 号码矩阵，支持冷热色阶、选中态</div></div>
+  <div class="comp-item"><div class="comp-name">KpiCard 指标卡</div><div class="comp-desc">数值 + 标签 + 趋势箭头</div></div>
+  <div class="comp-item"><div class="comp-name">ChartCard 图表卡</div><div class="comp-desc">标题 + ECharts/Canvas 画布 + 图例</div></div>
+  <div class="comp-item"><div class="comp-name">DataTable 数据表</div><div class="comp-desc">支持分页、排序、行悬停高亮</div></div>
+  <div class="comp-item"><div class="comp-name">StatusBadge 状态徽章</div><div class="comp-desc">success/warning/error/planned 四态</div></div>
+  <div class="comp-item"><div class="comp-name">ProgressBar 进度条</div><div class="comp-desc">同步/回测进度展示</div></div>
+  <div class="comp-item"><div class="comp-name">DisclaimerBanner</div><div class="comp-desc">固定免责声明横幅，全页面底部</div></div>
+  <div class="comp-item"><div class="comp-name">LotterySwitcher</div><div class="comp-desc">顶部彩种切换下拉</div></div>
+  <div class="comp-item"><div class="comp-name">VisualizerCanvas</div><div class="comp-desc">2D Canvas / Three.js 渲染容器，含 FPS 监控</div></div>
+</div>
+
+<!-- ============== 3. 各页面详细设计 ============== -->
+<h2><span class="num">3</span>各页面详细设计</h2>
+
+<!-- 历史开奖 -->
+<div class="page-card">
+  <div class="page-head">
+    <div>
+      <span class="page-title">3.1 历史开奖</span>
+      <span class="badge badge-2d">2D</span>
+      <span class="badge badge-api">API</span>
+    </div>
+    <span class="page-route">/history</span>
+  </div>
+
+  <h4>页面目标</h4>
+  <p>查看所有期开奖结果，支持按期号/日期检索，球号可视化展示。</p>
+
+  <h4>布局结构</h4>
+  <div class="wireframe">
+<span class="zone z-header">顶部导航（彩种切换）</span><br>
+<span class="zone z-main">筛选栏：期号输入 + 日期范围 + 搜索按钮</span><br>
+<span class="zone z-card">KPI 行：总期数 | 最新期号 | 最新日期 | 数据覆盖时间</span><br>
+<span class="zone z-main">开奖表格（虚拟滚动，50条/页）<br>
+&nbsp;&nbsp;列：期号 | 日期 | 红球(6个球) | 蓝球(1个球) | 销售额 | 奖池 | 一等奖注数</span><br>
+<span class="zone z-main">分页器</span>
+  </div>
+
+  <h4>组件</h4>
+  <ul>
+    <li><code>DataTable</code> + 虚拟滚动（react-window），3000 期不卡</li>
+    <li><code>Ball</code> 红球 <span style="color:#ef4444">●</span> / 蓝球 <span style="color:#3b82f6">●</span> 行内展示</li>
+    <li><code>KpiCard</code> ×4</li>
+  </ul>
+
+  <h4>数据流</h4>
+  <p><code>GET /api/history?type=ssq&page=1&size=50</code> → 分页数据；<code>GET /api/history/latest?type=ssq</code> → 顶部 KPI</p>
+
+  <h4>交互</h4>
+  <ul>
+    <li>期号/日期筛选，回车或点搜索触发</li>
+    <li>行悬停高亮；点击某行展开该期详情（奖级明细）</li>
+    <li>分页器支持跳页</li>
+  </ul>
+
+  <h4>性能</h4>
+  <ul>
+    <li>虚拟滚动：只渲染可视区行，3000 期 DOM 节点 ≤ 50</li>
+    <li>表格数据分页加载，不一次拉全量</li>
+  </ul>
+</div>
+
+<!-- 数据同步 -->
+<div class="page-card">
+  <div class="page-head">
+    <div>
+      <span class="page-title">3.2 数据同步</span>
+      <span class="badge badge-2d">2D</span>
+      <span class="badge badge-api">API</span>
+    </div>
+    <span class="page-route">/sync</span>
+  </div>
+
+  <h4>页面目标</h4>
+  <p>查看各彩种同步状态，手动触发同步，查看同步日志。</p>
+
+  <h4>布局结构</h4>
+  <div class="wireframe">
+<span class="zone z-header">顶部导航</span><br>
+<span class="zone z-card">彩种状态卡片网格（每彩种一张卡）<br>
+&nbsp;&nbsp;内容：彩种名 | 最新期号 | 最新日期 | 总条数 | 上次同步时间 | 同步状态徽章</span><br>
+<span class="zone z-main">操作栏：[同步全部] [仅同步当前彩种] &nbsp; 同步中显示 ProgressBar</span><br>
+<span class="zone z-main">同步日志表格：开始时间 | 彩种 | 拉取条数 | 入库条数 | 状态 | 耗时</span>
+  </div>
+
+  <h4>组件</h4>
+  <ul>
+    <li><code>StatusBadge</code>：success(绿) / failed(红) / running(蓝·脉冲)</li>
+    <li><code>ProgressBar</code>：同步进度（拉取页/总页）</li>
+    <li><code>DataTable</code> 日志表（最近 20 条）</li>
+  </ul>
+
+  <h4>数据流</h4>
+  <p><code>GET /api/sync/status</code> → 各彩种状态；<code>POST /api/sync/run?type=ssq</code> → 触发同步；<code>GET /api/sync/logs</code> → 日志</p>
+
+  <h4>交互</h4>
+  <ul>
+    <li>点「同步」按钮 → 显示进度条 → 完成后状态卡自动刷新</li>
+    <li>同步过程中按钮禁用，防止重复触发</li>
+    <li>失败日志可展开查看 error_msg</li>
+  </ul>
+
+  <h4>性能</h4>
+  <ul>
+    <li>同步是长耗时操作，后端走 BackgroundTasks，前端轮询 status（2s 间隔）</li>
+    <li>日志表只取最近 20 条</li>
+  </ul>
+</div>
+
+<!-- 统计分析 -->
+<div class="page-card">
+  <div class="page-head">
+    <div>
+      <span class="page-title">3.3 统计分析</span>
+      <span class="badge badge-2d">2D</span>
+      <span class="badge badge-api">API</span>
+    </div>
+    <span class="page-route">/stats</span>
+  </div>
+
+  <h4>页面目标</h4>
+  <p>多维度传统统计：频次、冷热、遗漏、奇偶、大小、区间、和值。</p>
+
+  <h4>布局结构</h4>
+  <div class="wireframe">
+<span class="zone z-header">顶部导航 + 彩种切换</span><br>
+<span class="zone z-main">窗口选择：[近30期] [近100期] [全部] &nbsp; 切换后所有图表联动刷新</span><br>
+<span class="zone z-main">Tab 切换：频次 | 冷热 | 遗漏 | 奇偶大小 | 区间和值</span><br>
+<span class="zone z-card">频次Tab：红球33柱 + 蓝球16柱（ECharts 柱状图，冷热色阶）</span><br>
+<span class="zone z-card">遗漏Tab：号码遗漏值热力图（NumberMatrix + 色阶）</span><br>
+<span class="zone z-card">奇偶大小Tab：饼图（奇偶比 / 大小比分布）</span><br>
+<span class="zone z-card">区间和值Tab：区间比柱状图 + 和值分布直方图</span>
+  </div>
+
+  <h4>组件</h4>
+  <ul>
+    <li><code>ChartCard</code> + ECharts</li>
+    <li><code>NumberMatrix</code> 色阶展示</li>
+    <li>窗口切换 SegmentedControl</li>
+  </ul>
+
+  <h4>数据流</h4>
+  <p><code>GET /api/stats?type=ssq&range=30</code> → 全部统计数据一次性返回（后端已缓存）</p>
+
+  <h4>交互</h4>
+  <ul>
+    <li>窗口切换 → 所有图表同步更新</li>
+    <li>图表支持 hover 查看具体数值</li>
+    <li>频次图可点击某号码高亮该号历史</li>
+  </ul>
+
+  <h4>性能</h4>
+  <ul>
+    <li>后端统计结果按 (type, range) 缓存（LRU），开奖更新时失效</li>
+    <li>ECharts 用 Canvas 渲染，大数据集不卡</li>
+  </ul>
+</div>
+
+<!-- 形态分析 -->
+<div class="page-card">
+  <div class="page-head">
+    <div>
+      <span class="page-title">3.4 形态分析</span>
+      <span class="badge badge-3d">3D</span>
+      <span class="badge badge-api">API</span>
+    </div>
+    <span class="page-route">/visualizer</span>
+  </div>
+
+  <h4>页面目标</h4>
+  <p>用号码作为数学变换参数生成 2D/3D 图形，提取图形特征辅助分析。所有算法后补，首期全部标记"待实现"。</p>
+
+  <h4>布局结构</h4>
+  <div class="wireframe">
+<span class="zone z-header">顶部导航 + 彩种切换</span><br>
+<span class="zone z-main">左侧：算法清单（按类别分组：频域/螺旋/塌陷/伸展收缩/组合）<br>
+&nbsp;&nbsp;每个算法：名称 | 维度(2D/3D) | 状态徽章(已实现/待实现) | 简短说明</span><br>
+<span class="zone z-main">右侧主区：<br>
+&nbsp;&nbsp;- 顶部：期号范围选择（最近N期 / 自定义范围）+ [运行] 按钮<br>
+&nbsp;&nbsp;- 中部：VisualizerCanvas（2D Canvas 或 Three.js 3D 场景）<br>
+&nbsp;&nbsp;- 底部：图形特征面板（面积/质心/收敛点等）+ [导出特征JSON] 按钮</span>
+  </div>
+
+  <h4>组件</h4>
+  <ul>
+    <li><code>VisualizerCanvas</code>：统一渲染容器，根据 visualizer 返回的 <code>type</code> 选 2D Canvas 或 Three.js</li>
+    <li>Three.js：本地 three.module.js + importmap，自实现 OrbitControls（拖拽旋转+滚轮缩放+阻尼）</li>
+    <li><code>StatusBadge</code>：planned(灰·待实现) / implemented(绿)</li>
+    <li>特征面板：键值对展示，支持一键复制 JSON</li>
+  </ul>
+
+  <h4>数据流</h4>
+  <p><code>GET /api/visualizers</code> → 算法清单（含 status）；<br>
+  <code>POST /api/visualizers/{name}/render</code> → 输入期号范围，返回图形数据；<br>
+  <code>POST /api/visualizers/{name}/features</code> → 返回提取的特征</p>
+
+  <h4>交互</h4>
+  <ul>
+    <li>左侧点算法 → 右侧加载该算法说明；待实现的算法显示"开发中"占位</li>
+    <li>已实现算法：选期号范围 → 点运行 → Canvas 渲染图形</li>
+    <li>3D 场景：鼠标拖拽旋转、滚轮缩放、右键平移</li>
+    <li>特征面板：点「导出 JSON」复制到剪贴板，可粘贴进自定义算法</li>
+  </ul>
+
+  <h4>性能</h4>
+  <ul>
+    <li>Three.js 仅在进入本页且选择已实现算法时懒加载</li>
+    <li>DPR 钳制 ≤2；非交互时暂停渲染（needsRender 标志）</li>
+    <li>开发模式显示 FPS / Draw Call / DPR</li>
+  </ul>
+
+  <h4>视觉</h4>
+  <ul>
+    <li>PBR 材质 + 三点布光（环境光+方向光+半球光）</li>
+    <li>渐变背景，不堆粒子/自动旋转</li>
+    <li>红球系暖色、蓝球系冷色，保持语义一致</li>
+  </ul>
+</div>
+
+<!-- 选号预测 -->
+<div class="page-card">
+  <div class="page-head">
+    <div>
+      <span class="page-title">3.5 选号预测</span>
+      <span class="badge badge-2d">2D</span>
+      <span class="badge badge-api">API</span>
+    </div>
+    <span class="page-route">/predict</span>
+  </div>
+
+  <h4>页面目标</h4>
+  <p>选择策略（含用户自有算法）生成号码，展示冷热标记，带免责声明。</p>
+
+  <h4>布局结构</h4>
+  <div class="wireframe">
+<span class="zone z-header">顶部导航 + 彩种切换</span><br>
+<span class="zone z-main">参数区：策略下拉 | 生成注数(1-10) | [生成] 按钮</span><br>
+<span class="zone z-main">免责横幅：⚠️ 本结果为统计选号，中奖概率与纯随机等价</span><br>
+<span class="zone z-card">结果区：每注一行 = 6红球 + 1蓝球，球号下方标冷热(热🔥/冷❄️/温·)</span><br>
+<span class="zone z-main">策略说明卡：当前策略的逻辑简述</span>
+  </div>
+
+  <h4>组件</h4>
+  <ul>
+    <li><code>Ball</code> + 冷热标记</li>
+    <li>策略下拉（含用户自有算法，自动从 custom_algorithm 加载）</li>
+    <li>免责横幅（固定在结果上方，不可关闭）</li>
+  </ul>
+
+  <h4>数据流</h4>
+  <p><code>GET /api/strategies</code> → 策略列表；<code>POST /api/predict</code> → 生成号码</p>
+
+  <h4>交互</h4>
+  <ul>
+    <li>选策略 + 注数 → 点生成 → 结果区渲染</li>
+    <li>每注可点「复制」复制号码文本</li>
+  </ul>
+</div>
+
+<!-- 回测 -->
+<div class="page-card">
+  <div class="page-head">
+    <div>
+      <span class="page-title">3.6 回测</span>
+      <span class="badge badge-2d">2D</span>
+      <span class="badge badge-api">API</span>
+    </div>
+    <span class="page-route">/backtest</span>
+  </div>
+
+  <h4>页面目标</h4>
+  <p>用历史数据滑动窗口回测策略命中率，与随机基线对比，展示 p-value 证明"策略≈随机"。</p>
+
+  <h4>布局结构</h4>
+  <div class="wireframe">
+<span class="zone z-header">顶部导航 + 彩种切换</span><br>
+<span class="zone z-main">参数区：策略下拉 | 训练窗口 | 回测期数 | [运行回测]</span><br>
+<span class="zone z-card">KPI 行：回测总期数 | 平均中红球 | 中蓝球概率 | 一等奖次数</span><br>
+<span class="zone z-card">命中分布柱状图：0-6红球命中频次（策略 vs 随机基线对比）</span><br>
+<span class="zone z-card">诚实性结论卡：p-value = X.XX → 策略与随机无显著差异（若 p>0.05）</span>
+  </div>
+
+  <h4>组件</h4>
+  <ul>
+    <li><code>KpiCard</code> ×4</li>
+    <li><code>ChartCard</code> 对比柱状图（策略柱 + 随机基线虚线）</li>
+    <li>结论卡：p-value 高亮显示</li>
+  </ul>
+
+  <h4>数据流</h4>
+  <p><code>POST /api/backtest</code> → 回测结果（含 p-value）</p>
+
+  <h4>交互</h4>
+  <ul>
+    <li>点运行回测 → 显示进度条 → 完成后渲染图表和结论</li>
+    <li>柱状图 hover 查看具体命中次数</li>
+  </ul>
+
+  <h4>诚实性硬约束</h4>
+  <ul>
+    <li>结论卡必须显示 p-value，不允许隐藏</li>
+    <li>若 p > 0.05，文字明确写"该策略与纯随机无统计学显著差异"</li>
+  </ul>
+</div>
+
+<!-- ============== 4. 全局组件 ============== -->
+<h2><span class="num">4</span>全局组件</h2>
+
+<h3>4.1 顶部导航栏</h3>
+<div class="wireframe">
+<span class="zone z-header">[Logo ssq-predictor] &nbsp;&nbsp; [彩种切换 ▾] &nbsp;&nbsp; 历史开奖 | 统计分析 | 形态分析 | 选号预测 | 回测 | 数据同步</span>
+</div>
+<ul>
+  <li>固定顶部，滚动时背景加深（毛玻璃效果）</li>
+  <li>当前页高亮（品牌色下划线）</li>
+  <li>彩种切换：下拉列出已注册彩种（ssq/dlt/...），切换后全页面数据刷新</li>
+</ul>
+
+<h3>4.2 页脚免责声明</h3>
+<p>固定在页面底部，全页面显示：</p>
+<div class="disclaimer">
+  ⚠️ 彩票为独立随机事件，历史数据不影响未来开奖。本系统仅作统计分析与选号参考，所有策略的长期命中率与纯随机无统计学差异。请理性购彩，量力而行。
+</div>
+
+<!-- ============== 5. 需求→页面覆盖矩阵 ============== -->
+<h2><span class="num">5</span>需求 → 页面覆盖矩阵</h2>
+<table>
+  <tr><th>需求点</th><th>承载页面</th><th>UI 区域/交互</th><th>状态</th></tr>
+  <tr><td>同步外部开奖数据</td><td>数据同步</td><td>同步按钮 + 进度条</td><td>✅ 覆盖</td></tr>
+  <tr><td>查看历史开奖</td><td>历史开奖</td><td>分页表格 + 球号</td><td>✅ 覆盖</td></tr>
+  <tr><td>传统统计分析</td><td>统计分析</td><td>频次/遗漏/奇偶等 Tab</td><td>✅ 覆盖</td></tr>
+  <tr><td>形态可视化分析</td><td>形态分析</td><td>算法清单 + Canvas/3D</td><td>🟡 框架覆盖，算法后补</td></tr>
+  <tr><td>选号生成</td><td>选号预测</td><td>策略下拉 + 生成</td><td>✅ 覆盖</td></tr>
+  <tr><td>用户自有算法</td><td>选号预测</td><td>策略自动加载</td><td>✅ 覆盖</td></tr>
+  <tr><td>策略回测验证</td><td>回测</td><td>滑动窗口 + p-value</td><td>✅ 覆盖</td></tr>
+  <tr><td>图形特征→算法输入</td><td>形态分析</td><td>导出特征 JSON</td><td>✅ 覆盖</td></tr>
+  <tr><td>多彩种支持</td><td>全局</td><td>顶部彩种切换</td><td>✅ 覆盖</td></tr>
+</table>
+
+<!-- ============== 6. 响应式 ============== -->
+<h2><span class="num">6</span>响应式与降级</h2>
+<table>
+  <tr><th>断点</th><th>布局调整</th></tr>
+  <tr><td>≥1280px</td><td>完整布局，图表并排</td></tr>
+  <tr><td>768-1279px</td><td>图表堆叠，导航保持水平</td></tr>
+  <tr><td>&lt;768px</td><td>导航折叠为汉堡菜单，卡片单列</td></tr>
+</table>
+<p>3D 场景在移动端降级为 2D Canvas 静态图（不强制交互）。</p>
+
+<div class="disclaimer">
+  本设计书为开发依据，最终实现以代码为准。所有数学变换须通过 §11 正确性测试后方可上线。
+</div>
+
+</div>
+</body>
+</html>

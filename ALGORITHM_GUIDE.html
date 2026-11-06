@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ssq-predictor · 可视化算法说明手册</title>
+<style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--surface-2:#21262d;--border:#30363d;
+  --text:#e6edf3;--muted:#8b949e;--brand:#7c6ff0;--brand-soft:#1a1759;
+  --accent:#2dd4bf;--warn:#f0a817;--danger:#f87171;--success:#34d399;--info:#60a5fa;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.8;padding:40px 20px}
+.wrap{max-width:1100px;margin:0 auto}
+h1{font-size:30px;background:linear-gradient(135deg,var(--brand),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+.subtitle{color:var(--muted);margin-bottom:32px;font-size:14px}
+h2{font-size:22px;margin:40px 0 16px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+h2 .num{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--brand),var(--accent));color:#fff;font-size:13px;font-weight:700;margin-right:8px}
+h3{font-size:18px;margin:24px 0 8px;color:var(--accent)}
+h4{font-size:15px;margin:16px 0 6px;color:var(--text)}
+p,li{color:var(--muted);font-size:14px}
+ul{padding-left:22px}
+li{margin-bottom:4px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin:20px 0}
+.card .tag{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;margin-bottom:10px}
+.tag-freq{background:rgba(96,165,250,.18);color:var(--info)}
+.tag-spiral{background:rgba(45,212,191,.18);color:var(--accent)}
+.tag-collapse{background:rgba(248,113,113,.18);color:var(--danger)}
+.tag-expand{background:rgba(240,168,23,.18);color:var(--warn)}
+.tag-combo{background:rgba(167,139,250,.2);color:#a78bfa}
+.tag-track{background:rgba(52,211,153,.18);color:var(--success)}
+.tag-graph{background:rgba(139,148,158,.2);color:var(--muted)}
+.analogy{background:var(--brand-soft);border-left:3px solid var(--brand);padding:10px 14px;border-radius:0 8px 8px 0;margin:10px 0;font-size:13px;color:var(--muted)}
+.analogy b{color:#b4aaff}
+.example{background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:14px;margin:10px 0;font-size:13px}
+.example b{color:var(--accent)}
+code{font-family:'SF Mono','Consolas',monospace;font-size:12px;color:var(--accent);background:var(--bg);padding:1px 6px;border-radius:4px}
+.formula{font-family:'SF Mono','Consolas',monospace;font-size:13px;color:var(--warn);background:var(--bg);padding:8px 12px;border-radius:6px;margin:8px 0;display:inline-block}
+.note{color:var(--warn);font-size:13px;margin-top:8px}
+
+/* ===== 移动端响应式 ===== */
+@media (max-width: 768px){
+  body{padding:16px 12px}
+  .wrap{max-width:100%}
+  h1{font-size:22px}
+  h2{font-size:18px}
+  h3{font-size:16px}
+  .card{padding:16px}
+  table{font-size:12px}
+  th,td{padding:6px 8px}
+  .example{font-size:12px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>可视化算法说明手册</h1>
+<p class="subtitle">用大白话讲清楚每个算法"是什么、号码怎么变图形、能看出什么" · 配具体号码示例</p>
+
+<p style="background:var(--brand-soft);border-left:3px solid var(--accent);padding:12px 16px;border-radius:0 8px 8px 0;font-size:14px;color:var(--text);margin-bottom:24px">
+<b>阅读提示</b>：每个算法都按 <b>「是什么 → 号码怎么用 → 举个例子 → 能看出什么」</b> 四段写，尽量不用公式，必要时用生活类比。双色球号码格式：<code>红球 01-33（6个）+ 蓝球 01-16（1个）</code>。
+</p>
+
+<!-- ============ A ============ -->
+<div class="card">
+<span class="tag tag-freq">频域</span>
+<h3>A. 傅里叶闭合曲线</h3>
+<h4>是什么</h4>
+<p>任何一条闭合的曲线，都可以看成是<b>很多个不同频率的"波浪"叠加</b>出来的。就像声音是不同频率声波的叠加，图形也是不同频率"图形波"的叠加。</p>
+<div class="analogy">
+<b>类比</b>：你在水面上同时扔好几颗石子，每颗石子产生一圈涟漪。涟漪互相叠加，最终水面的形状就是"傅里叶曲线"。每颗石子的大小决定那圈涟漪的强度。
+</div>
+
+<h4>号码怎么用</h4>
+<ul>
+  <li>6 个红球 → 6 个"石子"的<b>大小</b>（振幅），号越大那圈涟漪越强</li>
+  <li>蓝球 → 整体的<b>旋转角度</b>（相位）</li>
+</ul>
+
+<h4>举个例子</h4>
+<div class="example">
+假设某期红球 <code>[03, 11, 17, 22, 28, 33]</code>，蓝球 <code>09</code><br>
+→ 第 1 颗石子大小=3，第 2 颗=11，…第 6 颗=33；整体旋转 9°<br>
+→ 把这 6 圈涟漪叠加，得到一条<b>独一无二的闭合曲线</b>，就是这期号码的"图形签名"
+</div>
+
+<h4>能看出什么</h4>
+<ul>
+  <li>不同期号 → 不同曲线形状，可对比"形态演变"</li>
+  <li>曲线包围的面积、对称程度、自交点数量 → 传统统计没有的新维度</li>
+</ul>
+</div>
+
+<!-- ============ B ============ -->
+<div class="card">
+<span class="tag tag-freq">频域</span>
+<h3>B. Lissajous 图形</h3>
+<h4>是什么</h4>
+<p>示波器上常见的花纹。一个点在水平方向按某个频率左右摆动，垂直方向按另一个频率上下摆动，两个运动合起来画出的轨迹就是 Lissajous 曲线。</p>
+<div class="analogy">
+<b>类比</b>：想象一个钟摆同时在左右摆和前后摆，两个方向摆动快慢不同，摆锤画出的轨迹就是 Lissajous 图形。两个频率比不同，花纹完全不同。
+</div>
+
+<h4>号码怎么用</h4>
+<ul>
+  <li>红球两两配对 → 水平频率、垂直频率（如第1、2个红球）</li>
+  <li>蓝球 → 两个摆动的<b>时间差</b>（相位）</li>
+</ul>
+
+<h4>举个例子</h4>
+<div class="example">
+红球 <code>[03, 02, 17, 22, 28, 33]</code>，取前两对：水平频率=3，垂直频率=2<br>
+→ 频率比 3:2 → 画出一个<b>上面3个鼓包、侧面2个鼓包</b>的编织花纹<br>
+蓝球 09 → 时间差 9 个单位 → 花纹整体旋转一点
+</div>
+
+<h4>能看出什么</h4>
+<ul>
+  <li>频率比决定花纹复杂度，整数比时曲线闭合</li>
+  <li>蓝球变化 → 花纹旋转，可观察"形态偏转"规律</li>
+</ul>
+</div>
+
+<!-- ============ C ============ -->
+<div class="card">
+<span class="tag tag-track">轨迹</span>
+<h3>C. 3D 时空轨迹</h3>
+<h4>是什么</h4>
+<p>把每期号码当成 3D 空间里的几个点，多期连起来看就像一条在空间里"游走"的轨迹。</p>
+<div class="analogy">
+<b>类比</b>：就像飞行记录仪记录飞机的飞行轨迹，我们记录每期号码在 3D 空间的位置。连续看很多期，就能看到"号码"在空间里怎么走动。
+</div>
+
+<h4>号码怎么用</h4>
+<ul>
+  <li>6 个红球 → 拆成 3 组，每组 2 个数作为 3D 坐标 (x,y,z)，得到 3 个点</li>
+  <li>或者把 6 个数直接当 2 个 3D 点的坐标</li>
+  <li>蓝球 → 点的颜色或大小</li>
+</ul>
+
+<h4>举个例子</h4>
+<div class="example">
+红球 <code>[03, 11, 17, 22, 28, 33]</code><br>
+→ 点1 = (3, 11, 17)，点2 = (22, 28, 33)<br>
+→ 下一期红球 <code>[05, 08, 19, 21, 26, 30]</code><br>
+→ 点1 = (5, 8, 19)，点2 = (21, 26, 30)<br>
+→ 把点1 们连起来、点2 们连起来，得到两条 3D 轨迹线
+</div>
+
+<h4>能看出什么</h4>
+<ul>
+  <li>轨迹是否在某个空间区域聚集（"号码常去的地方"）</li>
+  <li>轨迹的游走方向、步长变化</li>
+</ul>
+</div>
+
+<!-- ============ D ============ -->
+<div class="card">
+<span class="tag tag-freq">频域</span>
+<h3>D. 球面调和变形球</h3>
+<h4>是什么</h4>
+<p>在一个完美的球面上，用号码控制不同位置的"凸起程度"，生成一个凹凸不平的变形球。</p>
+<div class="analogy">
+<b>类比</b>：像捏橡皮泥球，号码告诉你哪里捏高一点、哪里按低一点。每个号码对应球面上一个"捏"的力度和方向。
+</div>
+
+<h4>号码怎么用</h4>
+<ul>
+  <li>红球 → 球面上不同"模式"的凸起强度（球谐系数）</li>
+  <li>蓝球 → 整体缩放</li>
+</ul>
+
+<h4>举个例子</h4>
+<div class="example">
+红球 <code>[03, 11, 17, 22, 28, 33]</code><br>
+→ 模式1凸起=3，模式2=11，…模式6=33<br>
+→ 球面上出现 6 种不同的凹凸组合，形成一个独特的"土豆形"
+</div>
+
+<h4>能看出什么</h4>
+<ul>
+  <li>变形球的体积、表面积、对称破缺方向</li>
+  <li>哪一极鼓得更厉害 → 号码的"偏向"</li>
+</ul>
+</div>
+
+<!-- ============ E ============ -->
+<div class="card">
+<span class="tag tag-freq">动力系统</span>
+<h3>E. 混沌吸引子</h3>
+<h4>是什么</h4>
+<p>有些数学规则迭代很多次后，轨迹会被"吸"到一个特定的形状上，这个形状叫吸引子。最有名的是洛伦兹吸引子，长得像蝴蝶翅膀。</p>
+<div class="analogy">
+<b>类比</b>：像水流进漩涡，不管从哪里开始流，最终都会被卷进漩涡的固定形状里。号码就是"水流的起点"。
+</div>
+
+<h4>号码怎么用</h4>
+<ul>
+  <li>红球 → 动力系统的<b>初始位置</b>（起点坐标）</li>
+  <li>蓝球 → 系统的某个参数（如漩涡强度）</li>
+</ul>
+
+<h4>举个例子</h4>
+<div class="example">
+红球 <code>[03, 11, 17]</code> → 起点 (3, 11, 17)，放入洛伦兹系统迭代 10000 步<br>
+→ 轨迹被吸进蝴蝶形吸引子<br>
+→ 不同号码起点 → 进入吸引子的路径不同，但最终都绕着蝴蝶翅膀转
+</div>
+
+<h4>能看出什么</h4>
+<ul>
+  <li>号码落入哪个"盆地"（最终绕哪个翅膀转）</li>
+  <li>进入吸引子的耗时、绕圈数</li>
+</ul>
+</div>
+
+<!-- ============ F ============ -->
+<div class="card">
+<span class="tag tag-graph">图论</span>
+<h3>F. 共现网络图</h3>
+<h4>是什么</h4>
+<p>把 33 个红球号当成 33 个"人"，如果两个号码在同一期同时出现过，就在他们之间连一条线。出现越多，线越粗。</p>
+<div class="analogy">
+<b>类比</b>：社交关系图。经常一起出现的号码就是"好朋友"，连线粗；从不一起出现的就是"陌生人"。
+</div>
+
+<h4>号码怎么用</h4>
+<ul>
+  <li>每期 6 个红球 → 在这 6 个节点之间两两连线</li>
+  <li>多期累计 → 连线粗细 = 共同出现次数</li>
+</ul>
+
+<h4>举个例子</h4>
+<div class="example">
+统计 100 期后，发现号码 03 和 17 同时出现了 12 次，03 和 33 只同时出现 1 次<br>
+→ 03 和 17 之间连粗线，03 和 33 之间连细线<br>
+→ 形成一张"号码社交网"，可以看出哪些号是"核心枢纽"
+</div>
+
+<h4>能看出什么</h4>
+<ul>
+  <li>哪些号码是"枢纽"（连接最多）</li>
+  <li>哪些号码团频繁一起出现</li>
+</ul>
+</div>
+
+<!-- ============ G ============ -->
+<div class="card">
+<span class="tag tag-spiral">螺旋</span>
+<h3>G. 螺旋骨架傅里叶</h3>
+<h4>是什么</h4>
+<p>和 A 类似，但不是画闭合曲线，而是把傅里叶波浪叠加在一条<b>螺旋线</b>上。就像在螺旋楼梯上贴波浪贴纸。</p>
+<div class="analogy">
+<b>类比</b>：A 是在圆圈上画波浪（闭合），G 是在螺旋线上画波浪（开口，越转越往里或越往外）。
+</div>
+
+<h4>号码怎么用</h4>
+<ul>
+  <li>红球 → 螺旋上 6 阶波浪的<b>振幅</b></li>
+  <li>蓝球 → 螺旋的<b>紧密度</b>（蓝球大，螺旋收得紧；小，螺旋张得开）</li>
+</ul>
+
+<h4>举个例子</h4>
+<div class="example">
+红球 <code>[03, 11, 17, 22, 28, 33]</code>，蓝球 <code>09</code><br>
+→ 螺旋紧密度=9，6 阶波浪振幅分别是 3,11,17,22,28,33<br>
+→ 得到一条一边旋转一边起伏的<b>开口螺旋曲线</b>
+</div>
+
+<h4>能看出什么</h4>
+<ul>
+  <li>螺旋的圈数、收尾方向、振幅包络的"呼吸"节奏</li>
+  <li>蓝球大 → 螺旋紧，蓝球小 → 螺旋松</li>
+</ul>
+</div>
+
+<!-- ============ H ============ -->
+<div class="card">
+<span class="tag tag-spiral">螺旋</span>
+<h3>H. 极坐标傅里叶玫瑰</h3>
+<h4>是什么</h4>
+<p>在极坐标里（用"距离 + 角度"表示位置），距离随角度按傅里叶方式变化，画出来像一朵多瓣的花。</p>
+<div class="analogy">
+<b>类比</b>：像花瓣的轮廓，每个号码决定一瓣花瓣的大小。号码组合不同，花瓣数量和大小不同。
+</div>
+
+<h4>号码怎么用</h4>
+<ul>
+  <li>红球 → 极径 r(θ) 的傅里叶系数，决定花瓣大小</li>
+  <li>蓝球 → 整体旋转角度</li>
+</ul>
+
+<h4>举个例子</h4>
+<div class="example">
+红球 <code>[03, 11, 17, 22, 28, 33]</code>，蓝球 <code>09</code><br>
+→ 6 个系数 → 生成一朵有若干花瓣的"玫瑰花"<br>
+→ 蓝球 9 → 花整体旋转 9°
+</div>
+
+<h4>能看出什么</h4>
+<ul>
+  <li>花瓣数、花瓣大小分布、对称性破缺方向</li>
+</ul>
+</div>
+
+<!-- ============ I ============ -->
+<div class="card">
+<span class="tag tag-spiral">螺旋</span>
+<h3>I. 斐波那契螺旋点阵</h3>
+<h4>是什么</h4>
+<p>按黄金角（137.5°）排列点，形成向日葵籽盘那样的螺旋点阵。号码决定每个点离中心多远。</p>
+<div class="analogy">
+<b>类比</b>：向日葵籽盘。每颗籽按 137.5° 排，号码大的籽排外圈，号码小的排内圈。
+</div>
+
+<h4>号码怎么用</h4>
+<ul>
+  <li>7 个号（6红+1蓝）→ 7 个点，按黄金角排列</li>
+  <li>每个号的值 → 该点离中心的距离（号越大越靠外）</li>
+</ul>
+
+<h4>举个例子</h4>
+<div class="example">
+红球 <code>[03, 11, 17, 22, 28, 33]</code>，蓝球 <code>09</code><br>
+→ 7 个点：距离分别为 3,11,17,22,28,33,9，角度按 0°,137.5°,275°,412.5°...排列<br>
+→ 形成一个 7 点的小型向日葵图案<br>
+→ 号码聚集 → 点团塌陷在一起；号码分散 → 盘面展开
+</div>
+
+<h4>能看出什么</h4>
+<ul>
+  <li>点团的聚集程度（号码是否集中）</li>
+  <li>点阵的疏密分布</li>
+</ul>
+</div>
+
+<!-- ============ J ============ -->
+<div class="card">
+<span class="tag tag-collapse">塌陷</span>
+<h3>J. 引力坍缩轨迹</h3>
+<h4>是什么</h4>
+<p>把 6 个红球当成 6 个有质量的小球，让它们在引力作用下互相吸引，最终向中心塌缩。记录每个球的运动轨迹。</p>
+<div class="analogy">
+<b>类比</b>：6 颗星星互相吸引，最终撞到一起。号越大的星星质量越大，引力越强。
+</div>
+
+<h4>号码怎么用</h4>
+<ul>
+  <li>红球 → 6 个质点的<b>质量</b>（号越大质量越大）</li>
+  <li>蓝球 → 引力常数 G 或时间步长（决定坍缩快慢）</li>
+</ul>
+
+<h4>举个例子</h4>
+<div class="example">
+红球 <code>[03, 11, 17, 22, 28, 33]</code>，蓝球 <code>09</code><br>
+→ 6 个球质量=3,11,17,22,28,33，随机撒在圆盘里<br>
+→ 引力常数=9，模拟它们互相吸引<br>
+→ 质量大的球（33,28）吸引其他球更快，最终所有球塌缩到一个点<br>
+→ 记录每个球的运动轨迹
+</div>
+
+<h4>能看出什么</h4>
+<ul>
+  <li>坍缩时间（号码越大整体坍缩越快）</li>
+  <li>是否对称坍缩（号码分布均匀→对称，不均匀→歪斜）</li>
+  <li>最终收敛点坐标（可作自定义算法输入）</li>
+</ul>
+</div>
+
+<!-- ============ K ============ -->
+<div class="card">
+<span class="tag tag-collapse">塌陷</span>
+<h3>K. 吸引子盆地塌缩</h3>
+<h4>是什么</h4>
+<p>和 E 类似，但关注的是轨迹<b>被吸入吸引子的过程</b>。不同起点的轨迹像水从不同地方流进下水道，路径不同但都汇到同一个"洞"。</p>
+<div class="analogy">
+<b>类比</b>：洗手池放水，不管水从哪个位置开始流，最终都流进下水口。号码就是水的起点，看它怎么螺旋流进"洞"里。
+</div>
+
+<h4>号码怎么用</h4>
+<ul>
+  <li>红球 → 动力系统的<b>初始位置</b></li>
+  <li>蓝球 → 系统参数</li>
+</ul>
+
+<h4>举个例子</h4>
+<div class="example">
+红球 <code>[03, 11, 17]</code> → 起点 (3,11,17)<br>
+→ 迭代杜芬方程，轨迹螺旋吸入吸引子<br>
+→ 记录：螺旋圈数=127，收敛耗时=4.3s，最终落入左盆地
+</div>
+
+<h4>能看出什么</h4>
+<ul>
+  <li>落入哪个"盆地"（可作自定义算法输入的盆地编号）</li>
+  <li>收敛耗时、螺旋圈数</li>
+</ul>
+</div>
+
+<!-- ============ L ============ -->
+<div class="card">
+<span class="tag tag-collapse">塌陷</span>
+<h3>L. 多边形塌缩</h3>
+<h4>是什么</h4>
+<p>6 个红球决定一个六边形的 6 个顶点离中心多远，然后让这个六边形向中心收缩消失。</p>
+<div class="analogy">
+<b>类比</b>：像一把伞慢慢收拢。6 个伞骨的长度由 6 个红球决定，蓝球决定收拢速度。
+</div>
+
+<h4>号码怎么用</h4>
+<ul>
+  <li>红球 → 六边形 6 个顶点的<b>半径</b>（极坐标）</li>
+  <li>蓝球 → 收缩的<b>衰减系数</b>（蓝球大，收缩快）</li>
+</ul>
+
+<h4>举个例子</h4>
+<div class="example">
+红球 <code>[03, 11, 17, 22, 28, 33]</code>，蓝球 <code>09</code><br>
+→ 六边形顶点半径=3,11,17,22,28,33（很不均匀）<br>
+→ 衰减系数=9，收缩较快<br>
+→ 收缩过程中形状会"歪斜"（因为半径差异大），最终缩成一个点
+</div>
+
+<h4>能看出什么</h4>
+<ul>
+  <li>号码差异大 → 收缩过程歪斜；号码接近 → 对称正六边形收缩</li>
+  <li>收缩轨迹的"歪斜程度"反映号码离散度</li>
+</ul>
+</div>
+
+<!-- ============ M ============ -->
+<div class="card">
+<span class="tag tag-expand">伸展收缩</span>
+<h3>M. 呼吸球面</h3>
+<h4>是什么</h4>
+<p>一个球面像心跳一样周期性地膨胀、收缩。号码决定球面不同位置的起伏程度。</p>
+<div class="analogy">
+<b>类比</b>：像一个会呼吸的气球。号码决定气球表面不同地方鼓多高、缩多深，蓝球决定呼吸快慢。
+</div>
+
+<h4>号码怎么用</h4>
+<ul>
+  <li>红球 → 球面各阶球谐系数，决定哪里鼓哪里凹</li>
+  <li>蓝球 → 呼吸的<b>基频</b>（蓝球大，跳得快）</li>
+</ul>
+
+<h4>举个例子</h4>
+<div class="example">
+红球 <code>[03, 11, 17, 22, 28, 33]</code>，蓝球 <code>09</code><br>
+→ 球面有 6 种凹凸模式，呼吸频率=9<br>
+→ 球会一边凹凸变形，一边整体扩大缩小，像心跳
+</div>
+
+<h4>能看出什么</h4>
+<ul>
+  <li>呼吸振幅、对称破缺方向（哪一极鼓得更厉害）</li>
+  <li>蓝球 → 心跳节奏</li>
+</ul>
+</div>
+
+<!-- ============ N ============ -->
+<div class="card">
+<span class="tag tag-expand">伸展收缩</span>
+<h3>N. 形态渐变（Homotopy）</h3>
+<h4>是什么</h4>
+<p>从上一期号码生成的图形，平滑地"变形"到本期号码生成的图形，中间的变形过程就是动画。</p>
+<div class="analogy">
+<b>类比</b>：像变形金刚从汽车变成机器人，中间有一系列过渡形态。我们看上期图形→本期图形的"变形过程"。
+</div>
+
+<h4>号码怎么用</h4>
+<ul>
+  <li>上一期号码 → 起始图形</li>
+  <li>本期号码 → 目标图形</li>
+  <li>用插值算法生成中间帧</li>
+</ul>
+
+<h4>举个例子</h4>
+<div class="example">
+上期 <code>[03,11,17,22,28,33]</code> → 起始六边形<br>
+本期 <code>[05,08,19,21,26,30]</code> → 目标六边形<br>
+→ 播放从起始六边形变到目标六边形的动画<br>
+→ 变形过程中自然出现"伸展→塌陷→再伸展"
+</div>
+
+<h4>能看出什么</h4>
+<ul>
+  <li>相邻两期之间的"形变能量"（变化越大，变形越剧烈）</li>
+  <li>形变过程中的中间形态</li>
+</ul>
+</div>
+
+<!-- ============ O ============ -->
+<div class="card">
+<span class="tag tag-expand">伸展收缩</span>
+<h3>O. 形态学膨胀/腐蚀</h3>
+<h4>是什么</h4>
+<p>把号码变成黑白图上的白点，然后对白点做"膨胀"（往外长一圈）和"腐蚀"（往里缩一圈），看面积怎么变化。</p>
+<div class="analogy">
+<b>类比</b>：像在地图上，白点是城市。膨胀=城市扩张一圈，腐蚀=城市缩小一圈。看扩张/缩小后面积怎么变。
+</div>
+
+<h4>号码怎么用</h4>
+<ul>
+  <li>红球 → 在 33×33 网格上点亮 6 个点</li>
+  <li>蓝球 → 膨胀/腐蚀的"半径"（每次长/缩多大）</li>
+</ul>
+
+<h4>举个例子</h4>
+<div class="example">
+红球 <code>[03, 11, 17, 22, 28, 33]</code> → 点亮 6 个点<br>
+蓝球 <code>09</code> → 每次膨胀半径=9<br>
+→ 膨胀 1 次：点变成 6 个圆，面积变大<br>
+→ 膨胀 2 次：圆可能连成片，面积增速变化<br>
+→ 记录面积随膨胀次数的变化曲线
+</div>
+
+<h4>能看出什么</h4>
+<ul>
+  <li>面积变化曲线的峰值、周期</li>
+  <li>点的分布密集度（密集→膨胀后很快连片）</li>
+</ul>
+</div>
+
+<!-- ============ P ============ -->
+<div class="card">
+<span class="tag tag-combo">组合</span>
+<h3>P. 螺旋呼吸叠加</h3>
+<h4>是什么</h4>
+<p>每期号码生成一条螺旋波，把很多期的螺旋波叠加在一起，像水波干涉。</p>
+<div class="analogy">
+<b>类比</b>：往水里扔很多颗石子（每期一颗），涟漪互相叠加。共振的地方波纹变大（伸展），抵消的地方变平（塌陷）。
+</div>
+
+<h4>号码怎么用</h4>
+<ul>
+  <li>每期号码 → 一条螺旋波的参数（振幅、频率、相位）</li>
+  <li>多期叠加 → 干涉图样</li>
+</ul>
+
+<h4>举个例子</h4>
+<div class="example">
+取最近 10 期号码，每期生成一条螺旋波<br>
+→ 10 条波叠加<br>
+→ 某些位置共振（波峰+波峰）→ 图样放大<br>
+→ 某些位置抵消（波峰+波谷）→ 图样收缩
+</div>
+
+<h4>能看出什么</h4>
+<ul>
+  <li>号码的"周期共振"——哪些期号之间产生强干涉</li>
+</ul>
+</div>
+
+<!-- ============ Q ============ -->
+<div class="card">
+<span class="tag tag-combo">组合</span>
+<h3>Q. 螺旋塌缩吸引子</h3>
+<h4>是什么</h4>
+<p>G（螺旋傅里叶）+ K（吸引子塌缩）的组合。号码生成螺旋曲线，同时这条曲线作为动力系统的轨迹，一边螺旋一边向中心塌缩。</p>
+<div class="analogy">
+<b>类比</b>：像水流进漩涡时画的螺旋线——一边旋转一边向中心收缩，最终消失在中心。
+</div>
+
+<h4>号码怎么用</h4>
+<ul>
+  <li>红球 → 螺旋的振幅 + 动力系统初值</li>
+  <li>蓝球 → 螺旋紧密度 + 系统参数</li>
+</ul>
+
+<h4>举个例子</h4>
+<div class="example">
+红球 <code>[03, 11, 17, 22, 28, 33]</code>，蓝球 <code>09</code><br>
+→ 生成螺旋曲线，同时曲线各点被吸引子吸引<br>
+→ 轨迹一边螺旋一边向中心塌缩，最终收敛到一个点<br>
+→ 收敛点坐标 = (x, y)
+</div>
+
+<h4>能看出什么</h4>
+<ul>
+  <li><b>收敛点坐标</b>（非常适合作自定义算法输入）</li>
+  <li>螺旋圈数、收缩速率</li>
+</ul>
+</div>
+
+<!-- ============ R ============ -->
+<div class="card">
+<span class="tag tag-combo">组合</span>
+<h3>R. 呼吸螺旋点云</h3>
+<h4>是什么</h4>
+<p>I（斐波那契螺旋点阵）+ M（呼吸球面）的组合。点阵整体做呼吸缩放，看点与点之间距离的变化。</p>
+<div class="analogy">
+<b>类比</b>：向日葵籽盘在呼吸——整体扩大再缩小。看籽与籽之间的距离在呼吸中怎么变。
+</div>
+
+<h4>号码怎么用</h4>
+<ul>
+  <li>红球 → 点阵中点的位置（黄金角排列）</li>
+  <li>蓝球 → 呼吸频率</li>
+</ul>
+
+<h4>举个例子</h4>
+<div class="example">
+红球 <code>[03, 11, 17, 22, 28, 33]</code>，蓝球 <code>09</code><br>
+→ 7 个点按黄金角排列，呼吸频率=9<br>
+→ 点阵整体膨胀收缩<br>
+→ 记录每个点最近邻距离随时间的变化
+</div>
+
+<h4>能看出什么</h4>
+<ul>
+  <li>点云"呼吸"的相位差</li>
+  <li>最近邻距离的周期性</li>
+</ul>
+</div>
+
+<!-- ============ 总结 ============ -->
+<h2><span class="num">★</span>算法速查表</h2>
+<table style="font-size:13px">
+<tr><th>编号</th><th>名称</th><th>类别</th><th>维度</th><th>核心映射</th><th>可提取特征</th></tr>
+<tr><td>A</td><td>傅里叶闭合曲线</td><td>频域</td><td>2D</td><td>红球=谐波振幅，蓝球=相位</td><td>面积/质心/自交点</td></tr>
+<tr><td>B</td><td>Lissajous</td><td>频域</td><td>2D</td><td>红球=x/y频率，蓝球=相位</td><td>花瓣数/旋转角</td></tr>
+<tr><td>C</td><td>3D时空轨迹</td><td>轨迹</td><td>3D</td><td>红球=3D点坐标</td><td>聚集区域/游走方向</td></tr>
+<tr><td>D</td><td>球面调和变形球</td><td>频域</td><td>3D</td><td>红球=球谐系数</td><td>体积/对称破缺</td></tr>
+<tr><td>E</td><td>混沌吸引子</td><td>动力系统</td><td>3D</td><td>红球=初值，蓝球=参数</td><td>盆地编号/收敛耗时</td></tr>
+<tr><td>F</td><td>共现网络图</td><td>图论</td><td>2D</td><td>红球=节点，同现=边</td><td>枢纽节点/社团</td></tr>
+<tr><td>G</td><td>螺旋骨架傅里叶</td><td>螺旋</td><td>2D/3D</td><td>红球=螺旋上振幅，蓝球=紧密度</td><td>圈数/振幅包络</td></tr>
+<tr><td>H</td><td>极坐标傅里叶玫瑰</td><td>螺旋</td><td>2D</td><td>红球=r(θ)系数</td><td>花瓣数/对称性</td></tr>
+<tr><td>I</td><td>斐波那契螺旋点阵</td><td>螺旋</td><td>2D/3D</td><td>号码=径向距离</td><td>聚集程度/疏密</td></tr>
+<tr><td>J</td><td>引力坍缩轨迹</td><td>塌陷</td><td>2D/3D</td><td>红球=质量，蓝球=引力常数</td><td>坍缩时间/收敛点</td></tr>
+<tr><td>K</td><td>吸引子盆地塌缩</td><td>塌陷</td><td>3D</td><td>红球=初值，蓝球=参数</td><td>盆地编号/收敛耗时</td></tr>
+<tr><td>L</td><td>多边形塌缩</td><td>塌陷</td><td>2D</td><td>红球=顶点半径，蓝球=衰减</td><td>歪斜程度</td></tr>
+<tr><td>M</td><td>呼吸球面</td><td>伸展收缩</td><td>3D</td><td>红球=球谐系数，蓝球=频率</td><td>振幅/对称破缺</td></tr>
+<tr><td>N</td><td>形态渐变</td><td>伸展收缩</td><td>2D/3D</td><td>上期→本期图形插值</td><td>形变能量</td></tr>
+<tr><td>O</td><td>形态学膨胀腐蚀</td><td>伸展收缩</td><td>2D</td><td>红球=点，蓝球=半径</td><td>面积变化曲线</td></tr>
+<tr><td>P</td><td>螺旋呼吸叠加</td><td>组合</td><td>2D/3D</td><td>多期螺旋波叠加</td><td>共振期号</td></tr>
+<tr><td>Q</td><td>螺旋塌缩吸引子</td><td>组合</td><td>3D</td><td>螺旋+动力系统</td><td>收敛点坐标</td></tr>
+<tr><td>R</td><td>呼吸螺旋点云</td><td>组合</td><td>3D</td><td>黄金角点阵+呼吸</td><td>最近邻距离周期</td></tr>
+</table>
+
+<p class="note" style="margin-top:24px">
+注：以上算法均为"把号码映射成图形"的可视化工具，<b>不构成任何中奖预测</b>。图形特征可作为自定义算法的输入参数使用。
+</p>
+
+</div>
+</body>
+</html>

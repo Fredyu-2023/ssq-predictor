@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# 数据文件（本地开奖库，不入库）
+backend/data/*.db
+backend/data/*.db-journal
+backend/data/*.db-wal
+backend/data/*.db-shm
+
+# 前端
+frontend/node_modules/
+frontend/dist/
+
+# E2E（Playwright）
+frontend/test-results/
+frontend/playwright-report/
+frontend/e2e/.tmp/
+
+# 运行日志
+.run/
+*.log
+*.err.log
+
+# 编辑器 / 系统
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
