@@ -1,12 +1,34 @@
+/**
+ * 策略回测页：用「滑动窗口」模拟真实选号过程，并如实展示统计结论。
+ *
+ * 原理（一句话）：对每一个历史期号，只用它之前的 N 期数据训练策略、生成 1 注号码，
+ * 再与该期实际开奖比对命中数——策略永远看不到「未来」的数据。
+ *
+ * 页面流程：
+ *   加载策略清单（GET /api/strategies）
+ *   → 用户选择训练窗口 / 回测期数，点击「运行回测」
+ *   → 逐个策略串行调用 POST /api/backtest（每完成一个就刷新列表，并显示进度 x/y）
+ *   → 汇总条形图（按平均命中红球数排序）
+ *   → 每个策略一张详情卡（红球命中分布、奖级实际 vs 期望、卡方检验）
+ *
+ * 判读标准：p > 0.05 表示与随机基线无显著差异。
+ * 彩票是独立随机事件，「无显著差异」正是预期结论，页面用 tag-success 展示。
+ */
 import { useEffect, useState } from 'react'
 import { apiGet, apiPostJson } from '../api/client'
 import { BarChart } from '../components/BarChart'
 import type { BacktestOut, StrategyOut } from '../types'
 
+/** 比例 → 百分比文本，如 0.0625 → "6.25%"。 */
 function pct(value: number): string {
   return `${(value * 100).toFixed(2)}%`
 }
 
+/**
+ * 奖级期望次数的可读化：
+ * 高奖级期望次数极小（如 1e-5），直接 toFixed 会显示 0.00，
+ * 所以小于 0.01 时改用科学计数法（如 1.2e-5）。
+ */
 function expectedText(value: number): string {
   if (value === 0) return '0'
   if (value >= 0.01) return value.toFixed(2)
@@ -14,17 +36,19 @@ function expectedText(value: number): string {
 }
 
 export function BacktestPage() {
-  const [strategies, setStrategies] = useState<StrategyOut[]>([])
-  const [windowSize, setWindowSize] = useState(100)
-  const [periods, setPeriods] = useState(500)
-  const [results, setResults] = useState<BacktestOut[]>([])
-  const [busy, setBusy] = useState(false)
-  const [progress, setProgress] = useState<string | null>(null)
-  const [errors, setErrors] = useState<string[]>([])
-  const [error, setError] = useState<string | null>(null)
+  // ---- 页面状态 ----
+  const [strategies, setStrategies] = useState<StrategyOut[]>([]) // 全部已注册策略（含自定义插件）
+  const [windowSize, setWindowSize] = useState(100) // 训练窗口：每次训练用多少期历史
+  const [periods, setPeriods] = useState(500) // 回测期数：共模拟多少期开奖
+  const [results, setResults] = useState<BacktestOut[]>([]) // 已完成的回测结果（逐个追加）
+  const [busy, setBusy] = useState(false) // 是否正在回测（禁用按钮）
+  const [progress, setProgress] = useState<string | null>(null) // 当前进度文本，如 "随机（2/5）"
+  const [errors, setErrors] = useState<string[]>([]) // 单个策略失败不影响其他策略，单独收集
+  const [error, setError] = useState<string | null>(null) // 页面级错误（如策略清单加载失败）
 
+  // ---- 初始化：加载策略清单（只加载一次） ----
   useEffect(() => {
-    let cancelled = false
+    let cancelled = false // 组件卸载后不再 setState，避免 React 警告
     apiGet<StrategyOut[]>('/api/strategies')
       .then((items) => {
         if (!cancelled) setStrategies(items)
@@ -37,6 +61,7 @@ export function BacktestPage() {
     }
   }, [])
 
+  // ---- 动作：依次回测全部策略（串行，避免后端并发计算压垮本机） ----
   const runAll = async () => {
     setBusy(true)
     setError(null)
@@ -50,11 +75,11 @@ export function BacktestPage() {
         try {
           const data = await apiPostJson<BacktestOut>('/api/backtest', {
             strategy: item.name,
-            window: windowSize,
-            periods,
+            window: windowSize, // 每次训练用最近 window 期
+            periods, // 共向前滑动模拟 periods 期
           })
           collected.push(data)
-          setResults([...collected])
+          setResults([...collected]) // 每完成一个策略立刻刷新界面
         } catch (err) {
           failed.push(`${item.name}：${err instanceof Error ? err.message : String(err)}`)
         }
@@ -66,11 +91,13 @@ export function BacktestPage() {
     }
   }
 
-  const sorted = [...results].sort((a, b) => b.avg_red_hits - a.avg_red_hits)
-  const withinRandom = results.filter((item) => item.chi_square.p_value > 0.05).length
+  // ---- 派生数据 ----
+  const sorted = [...results].sort((a, b) => b.avg_red_hits - a.avg_red_hits) // 汇总图按平均命中降序
+  const withinRandom = results.filter((item) => item.chi_square.p_value > 0.05).length // 与随机无显著差异的策略数
 
   return (
     <section className="page">
+      {/* ---- 页面头部：说明「每期只用此前 N 期训练」的回测规则，window 实时联动 ---- */}
       <div className="page-head">
         <div>
           <h1>策略回测</h1>
@@ -80,6 +107,7 @@ export function BacktestPage() {
         </div>
       </div>
 
+      {/* ---- 结论预告条：常驻展示判读标准，避免把 p 值误读成「策略有效」 ---- */}
       <div className="alert alert-warn">
         回测如实展示统计显著性：彩票为独立随机事件，任何策略的长期命中分布都应接近随机基线。
         若 p &gt; 0.05，说明该策略与随机无显著差异——这正是本系统的结论。
@@ -87,6 +115,7 @@ export function BacktestPage() {
 
       {error && <div className="alert alert-error">{error}</div>}
 
+      {/* ---- 控制卡：训练窗口 / 回测期数两个参数 + 运行按钮；busy 时禁用并显示进度 ---- */}
       <div className="card backtest-controls">
         <label className="field">
           <span>训练窗口</span>
@@ -117,6 +146,7 @@ export function BacktestPage() {
         </button>
       </div>
 
+      {/* ---- 单策略失败汇总：某个策略出错不阻断其他策略，逐条列出 ---- */}
       {errors.length > 0 && (
         <div className="alert alert-error">
           {errors.map((item) => (
@@ -125,6 +155,7 @@ export function BacktestPage() {
         </div>
       )}
 
+      {/* ---- 空态：尚未回测时给出操作指引（回测进行中不显示，避免闪动） ---- */}
       {results.length === 0 ? (
         !busy && (
           <div className="card empty-state">
@@ -136,6 +167,7 @@ export function BacktestPage() {
         )
       ) : (
         <>
+          {/* ---- 汇总卡：各策略平均命中红球条形图 + 显著性小结（按降序排列） ---- */}
           <div className="card">
             <div className="card-head">
               <h2>策略对比：平均命中红球</h2>
@@ -158,6 +190,7 @@ export function BacktestPage() {
             </p>
           </div>
 
+          {/* ---- 详情列表：每个策略一张卡（命中分布图 / 奖级对照表 / 卡方检验 / 分桶明细） ---- */}
           <div className="backtest-list">
             {results.map((item) => (
               <div className="card backtest-card" key={item.strategy}>
@@ -175,6 +208,7 @@ export function BacktestPage() {
                   蓝球命中率 {pct(item.blue_hit_rate)}（理论 {pct(item.blue_expected_rate)}）
                 </div>
 
+                {/* 双栏布局：左=红球命中 0–6 分布柱状图，右=奖级实际次数 vs 理论期望 */}
                 <div className="backtest-body">
                   <div>
                     <div className="mini-title">红球命中分布（0–6 个）</div>
@@ -215,6 +249,7 @@ export function BacktestPage() {
                   </div>
                 </div>
 
+                {/* 卡方拟合优度检验：命中数分桶后与随机期望对比，p > 0.05 视为无显著差异 */}
                 <p className="chi-line">
                   卡方检验：χ² = {item.chi_square.statistic}，df = {item.chi_square.df}，
                   p = {item.chi_square.p_value}。{item.chi_square.conclusion}
@@ -230,6 +265,7 @@ export function BacktestPage() {
             ))}
           </div>
 
+          {/* ---- 免责声明（来自后端，随结果下发） ---- */}
           <p className="disclaimer">{results[0].disclaimer}；回测仅用于验证统计方法，不构成购彩建议。</p>
         </>
       )}

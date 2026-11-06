@@ -414,6 +414,102 @@ button {
   padding: 34px 12px !important;
 }
 
+/* 多期号码走势矩阵 */
+.trend-scroll {
+  overflow-x: auto;
+}
+
+.trend-table {
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.trend-table th,
+.trend-table td {
+  padding: 3px 1px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.trend-table thead th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.trend-group-row th {
+  padding: 6px 4px;
+  font-size: 12px;
+}
+
+.trend-group-red {
+  color: #fca5a5 !important;
+}
+
+.trend-group-blue {
+  color: #93c5fd !important;
+}
+
+.trend-issue-head,
+.trend-issue {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 66px;
+  padding-left: 8px !important;
+  text-align: left;
+  background: var(--card-solid);
+}
+
+.trend-issue {
+  color: var(--muted);
+}
+
+.trend-blue-start {
+  border-left: 1px solid var(--border);
+}
+
+.trend-miss {
+  display: inline-block;
+  width: 20px;
+  color: rgba(143, 161, 187, 0.26);
+  font-size: 10px;
+}
+
+.trend-ball {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 700;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.trend-ball-red {
+  background: radial-gradient(circle at 32% 28%, #ff8a8a, #ef4444 58%, #b91c1c);
+}
+
+.trend-ball-blue {
+  background: radial-gradient(circle at 32% 28%, #7cc4ff, #3b82f6 58%, #1d4ed8);
+}
+
+.trend-table tbody tr {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.trend-table tbody tr:nth-child(even) {
+  background: rgba(148, 163, 184, 0.04);
+}
+
+.trend-count {
+  color: var(--text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border-top: 1px solid var(--border);
+}
+
 .error-cell {
   max-width: 340px;
   color: #fca5a5;
@@ -1023,6 +1119,183 @@ button {
   margin-top: auto;
 }
 
+.viz-result {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  scroll-margin-top: 92px;
+}
+
+.viz-result-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.viz-result-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.viz-result-title h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.viz-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.viz-balls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.viz-ball-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.viz-order {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.spiral-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.spiral-svg {
+  display: block;
+  width: 100%;
+  max-width: 760px;
+  height: auto;
+}
+
+.viz-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.viz-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.viz-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.viz-dot-start {
+  background: #c4b5fd;
+}
+
+.viz-dot-end {
+  background: #f59e0b;
+}
+
+.harmonics {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 560px;
+}
+
+.harmonic-row {
+  display: grid;
+  grid-template-columns: 52px 84px 1fr 52px;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.harmonic-order {
+  color: var(--muted);
+}
+
+.harmonic-number {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.harmonic-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.14);
+  overflow: hidden;
+}
+
+.harmonic-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #38bdf8, #f472b6);
+}
+
+.harmonic-weight {
+  text-align: right;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.viz-features {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.viz-features-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.viz-features-head h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.viz-json {
+  margin: 0;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  font-size: 12px;
+  line-height: 1.6;
+  color: #cbd5e1;
+  overflow-x: auto;
+}
+
+@media (max-width: 760px) {
+  .viz-result-head {
+    flex-direction: column;
+  }
+  .harmonic-row {
+    grid-template-columns: 44px 74px 1fr 46px;
+    gap: 8px;
+  }
+}
+
 /* ---------- 历史开奖工具栏 ---------- */
 
 .history-toolbar {
@@ -1109,6 +1382,22 @@ button {
   .data-table th,
   .data-table td {
     padding: 8px 9px;
+  }
+  /* 手机端：每期号码保持一行横排，并用斑马纹加强行边界 */
+  .data-table .ball-row {
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+  .data-table .ball {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 10px !important;
+  }
+  .data-table tbody tr {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  }
+  .data-table tbody tr:nth-child(even) {
+    background: rgba(148, 163, 184, 0.05);
   }
   .bar-label {
     font-size: 8px;

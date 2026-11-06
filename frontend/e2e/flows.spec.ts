@@ -110,4 +110,19 @@ test.describe('移动端 375px 布局', () => {
       expect(overflow, `${item.title} 出现横向溢出`).toBeLessThanOrEqual(1)
     }
   })
+
+  test('历史页号码横排不换行且行边界清晰', async ({ page }) => {
+    await page.goto('/#history')
+    await expect(page.locator('.data-table tbody tr')).toHaveCount(20)
+    const wrap = await page
+      .locator('.data-table .ball-row')
+      .first()
+      .evaluate((el) => getComputedStyle(el).flexWrap)
+    expect(wrap).toBe('nowrap')
+    const evenBg = await page
+      .locator('.data-table tbody tr')
+      .nth(1)
+      .evaluate((el) => getComputedStyle(el).backgroundColor)
+    expect(evenBg).not.toBe('rgba(0, 0, 0, 0)')
+  })
 })

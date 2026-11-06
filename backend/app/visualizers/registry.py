@@ -1,10 +1,11 @@
-"""可视化注册表：内置 A–R 清单全部登记为 planned。"""
+"""可视化注册表：内置 A–R 清单，其中 G 螺旋骨架傅里叶已实现，其余为 planned。"""
 
 from __future__ import annotations
 
 from collections import OrderedDict
 
 from .base import BaseVisualizer, VisualizationData
+from .spiral_fourier import SpiralFourierVisualizer
 
 PLANNED_SPECS = [
     ("A", "fourier_curve", "傅里叶闭合曲线", "频域", "2D", "红球=谐波振幅，蓝球=相位"),
@@ -48,6 +49,8 @@ class PlannedVisualizer(BaseVisualizer):
 _REGISTRY: OrderedDict[str, BaseVisualizer] = OrderedDict(
     (spec[1], PlannedVisualizer(*spec)) for spec in PLANNED_SPECS
 )
+# G. 螺旋骨架傅里叶已有具体实现，用实现类覆盖同名的占位项（保持原有排序）。
+_REGISTRY["spiral_fourier"] = SpiralFourierVisualizer()
 
 
 def register(visualizer: BaseVisualizer) -> None:

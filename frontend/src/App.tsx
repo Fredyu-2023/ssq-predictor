@@ -13,7 +13,7 @@ const NAV: { key: PageKey; label: string; hint: string }[] = [
   { key: 'stats', label: '统计分析', hint: '频次 · 遗漏 · 结构' },
   { key: 'predict', label: '选号预测', hint: '策略选号 · 冷热标记' },
   { key: 'backtest', label: '策略回测', hint: '滑动窗口 · p-value' },
-  { key: 'visualizer', label: '形态分析', hint: '几何映射 · 开发中' },
+  { key: 'visualizer', label: '形态分析', hint: '几何映射 · G 已实现' },
   { key: 'sync', label: '数据同步', hint: '状态 · 手动触发 · 日志' },
 ]
 

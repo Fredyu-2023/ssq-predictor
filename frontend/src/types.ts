@@ -192,3 +192,39 @@ export interface VisualizerOut {
   description: string
   mapping: string
 }
+
+export interface HarmonicItem {
+  order: number
+  number: number
+  amplitude: number
+  weight: number
+}
+
+export interface SpiralFourierData {
+  points: [number, number][]
+  normalized: boolean
+  scale: number
+  turns: number
+  tightness: number
+  pitch: number
+  gain: number
+  inner_radius: number
+  harmonics: HarmonicItem[]
+  reds: number[]
+  blue: number
+  red_max: number
+  blue_max: number
+  issue: string
+}
+
+export interface VisualizationOut<T = Record<string, unknown>> {
+  type: string
+  data: T
+  metadata: Record<string, unknown>
+}
+
+export interface VisualizerFeaturesOut {
+  code: string
+  name: string
+  features: Record<string, number>
+}

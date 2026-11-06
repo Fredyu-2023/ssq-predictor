@@ -114,15 +114,37 @@ test.describe('后端 API 契约（经 Vite 代理）', () => {
     expect(body.disclaimer).toContain('随机')
   })
 
-  test('形态清单 A–R 共 18 项且全部开发中', async ({ request }) => {
+  test('形态清单 A–R 共 18 项，仅 G 已实现', async ({ request }) => {
     const list = await (await request.get('/api/visualizers')).json()
     expect(list).toHaveLength(18)
     expect(list.map((item: { code: string }) => item.code).join('')).toBe('ABCDEFGHIJKLMNOPQR')
-    for (const item of list) {
-      expect(item.status).toBe('planned')
-    }
+    const implemented = list.filter((item: { status: string }) => item.status === 'implemented')
+    expect(implemented).toHaveLength(1)
+    expect(implemented[0]).toMatchObject({ code: 'G', name: 'spiral_fourier' })
     const categories = new Set(list.map((item: { category: string }) => item.category))
     expect(categories.size).toBe(8)
+  })
+
+  test('螺旋骨架傅里叶可渲染并可提取特征', async ({ request }) => {
+    const rendered = await request.post('/api/visualizers/spiral_fourier/render', {
+      data: { type: 'ssq', periods: 1 },
+    })
+    expect(rendered.ok()).toBeTruthy()
+    const body = await rendered.json()
+    expect(body.type).toBe('spiral_fourier')
+    expect(body.data.points.length).toBeGreaterThan(500)
+    expect(body.data.harmonics).toHaveLength(6)
+    expect(body.data).toHaveProperty('turns')
+    expect(body.data).toHaveProperty('tightness')
+
+    const features = await request.post('/api/visualizers/spiral_fourier/features', {
+      data: { type: 'ssq', periods: 1 },
+    })
+    expect(features.ok()).toBeTruthy()
+    const featureBody = await features.json()
+    expect(featureBody.code).toBe('G')
+    expect(featureBody.features.dominant_harmonic).toBeGreaterThanOrEqual(1)
+    expect(featureBody.features.arc_length).toBeGreaterThan(0)
   })
 
   test('未实现算法 501、未知算法 404、非法策略 404', async ({ request }) => {

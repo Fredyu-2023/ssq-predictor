@@ -1,22 +1,47 @@
+/**
+ * 统计分析页：号码频次 / 遗漏 / 比例结构 / 和值与 AC 分布的总览页。
+ *
+ * 页面结构（自上而下）：
+ *   页面头（含 近30期 / 近100期 / 全部 窗口切换）
+ *   → 4 张指标卡（统计窗口、和值均值、AC 均值、库内总期数）
+ *   → 多期号码走势矩阵（TrendTable，独立取数、独立窗口切换）
+ *   → 红/蓝频次柱、红/蓝遗漏热力图、连号 chips
+ *   → 奇偶比 / 大小比 / 区间比三连、和值分布 / AC 分布
+ *   → 免责声明
+ *
+ * 数据流：/api/stats（窗口联动，一次返回全部统计）+ /api/history（走势矩阵专用，独立窗口）。
+ */
 import { useEffect, useMemo, useState } from 'react'
 import { apiGet } from '../api/client'
 import { BarChart, type BarItem } from '../components/BarChart'
 import { DistributionBars } from '../components/DistributionBars'
 import { Heatmap } from '../components/Heatmap'
-import type { StatsOut } from '../types'
+import { TrendTable } from '../components/TrendTable'
+import type { HistoryPageData, StatsOut } from '../types'
 
+// ---- 统计窗口选项：整页统计跟随它重算 ----
 const RANGES: { key: string; label: string }[] = [
   { key: '30', label: '近 30 期' },
   { key: '100', label: '近 100 期' },
   { key: 'all', label: '全部' },
 ]
 
+// ---- 走势矩阵窗口选项：只影响走势表，不影响上方统计 ----
+const TREND_SIZES = ['30', '50', '100']
+
 export function StatsPage() {
-  const [range, setRange] = useState('30')
-  const [data, setData] = useState<StatsOut | null>(null)
+  // ---- 整页统计状态（跟随 range 重算） ----
+  const [range, setRange] = useState('30') // 统计窗口：30 / 100 / all
+  const [data, setData] = useState<StatsOut | null>(null) // /api/stats 一次返回的全部统计
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // ---- 走势矩阵状态（独立取数，只跟随 trendSize） ----
+  const [trendSize, setTrendSize] = useState('30')
+  const [trend, setTrend] = useState<HistoryPageData | null>(null)
+  const [trendLoading, setTrendLoading] = useState(false)
+  const [trendError, setTrendError] = useState<string | null>(null)
 
+  // ---- 整页统计取数：range 变化即重算；cancelled 防止快速切换时旧响应覆盖新数据 ----
   useEffect(() => {
     let cancelled = false
     setLoading(true)
@@ -36,9 +61,32 @@ export function StatsPage() {
     }
   }, [range])
 
+  // 走势矩阵独立取数：复用历史接口，只取最近 trendSize 期。
+  useEffect(() => {
+    let cancelled = false
+    setTrendLoading(true)
+    setTrendError(null)
+    apiGet<HistoryPageData>('/api/history', { type: 'ssq', page: 1, size: Number(trendSize) })
+      .then((res) => {
+        if (!cancelled) setTrend(res)
+      })
+      .catch((err: Error) => {
+        if (!cancelled) setTrendError(err.message)
+      })
+      .finally(() => {
+        if (!cancelled) setTrendLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [trendSize])
+
+  // ---- 派生数据 ----
+  // 冷热号 Set：给红球频次柱着色用（热=hot、冷=cold、其余=accent）
   const hotSet = useMemo(() => new Set(data?.hot_red.map((x) => x.number) ?? []), [data])
   const coldSet = useMemo(() => new Set(data?.cold_red.map((x) => x.number) ?? []), [data])
 
+  // ---- 图表数据映射：把后端结构转成 BarChart 需要的 BarItem ----
   const redBars: BarItem[] =
     data?.red_freq.map((item) => ({
       key: item.number,
@@ -75,6 +123,7 @@ export function StatsPage() {
 
   return (
     <section className="page">
+      {/* ---- 页面头 + 统计窗口切换 ---- */}
       <div className="page-head">
         <div>
           <h1>统计分析</h1>
@@ -98,6 +147,7 @@ export function StatsPage() {
 
       {data && (
         <>
+          {/* ---- 4 张指标卡：窗口 / 和值均值 / AC 均值 / 库内总期数 ---- */}
           <div className="summary-grid">
             <div className="card stat-card">
               <span className="stat-label">统计窗口</span>
@@ -125,6 +175,31 @@ export function StatsPage() {
             </div>
           </div>
 
+          {/* ---- 多期号码走势矩阵：经典彩票走势图，号码多时可横向滑动 ---- */}
+          <div className="card">
+            <div className="card-head">
+              <h2>多期号码走势</h2>
+              <div className="segmented">
+                {TREND_SIZES.map((size) => (
+                  <button
+                    key={size}
+                    className={`seg${trendSize === size ? ' seg-active' : ''}`}
+                    onClick={() => setTrendSize(size)}
+                  >
+                    {size} 期
+                  </button>
+                ))}
+              </div>
+            </div>
+            {trendError && <div className="alert alert-error">{trendError}</div>}
+            {trendLoading && !trend && <div className="skeleton">走势加载中…</div>}
+            {trend && <TrendTable items={trend.items} />}
+            <p className="muted-text small">
+              每行一期：红球 1–33、蓝球 1–16，命中的号码以彩球标出，末行为窗口内出现次数。号码较多时可左右滑动查看。
+            </p>
+          </div>
+
+          {/* ---- 频次柱：红球按冷/热着色，蓝球统一色 ---- */}
           <div className="grid-2">
             <div className="card">
               <div className="card-head">
@@ -151,6 +226,7 @@ export function StatsPage() {
             </div>
           </div>
 
+          {/* ---- 遗漏热力图：颜色越深 = 该号码越久未开出 ---- */}
           <div className="grid-2">
             <div className="card">
               <div className="card-head">
@@ -171,6 +247,7 @@ export function StatsPage() {
             </div>
           </div>
 
+          {/* ---- 连号 chips：相邻号码同现次数，只展示前 16 组 ---- */}
           <div className="card">
             <div className="card-head">
               <h2>连号统计</h2>
@@ -187,6 +264,7 @@ export function StatsPage() {
             </div>
           </div>
 
+          {/* ---- 比例结构三连：奇偶比 / 大小比 / 区间比 ---- */}
           <div className="grid-3">
             <div className="card">
               <div className="card-head">
@@ -211,6 +289,7 @@ export function StatsPage() {
             </div>
           </div>
 
+          {/* ---- 和值分布（10 宽分桶）与 AC 值分布 ---- */}
           <div className="grid-2">
             <div className="card">
               <div className="card-head">
