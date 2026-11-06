@@ -25,6 +25,11 @@ frontend/e2e/.tmp/
 *.log
 *.err.log
 
+# 环境变量 / 密钥
+.env
+.env.*
+!.env.example
+
 # 编辑器 / 系统
 .idea/
 .vscode/
