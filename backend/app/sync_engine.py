@@ -177,7 +177,7 @@ def sync_lottery(
 ) -> SyncResult:
     """同步单个彩种。
 
-    full=True：忽略增量起点、全量扫描（用于启动自愈，补齐历史缺口）；
+    full=True：忽略增量起点、全量扫描并回补 2003–2012 历史（用于启动自愈，补齐历史缺口）；
     full=False：从库内最后一期开始增量拉取。
 
     wait=True：等待锁（最多 SYNC_LOCK_WAIT 秒），超时抛 SyncBusyError；
@@ -214,7 +214,21 @@ def sync_lottery(
 
             draws = fetcher.fetch(since=since)
 
+            # 全量同步时顺带回补官网未覆盖的早期历史（2003–2012，数据源 500 彩票网）。
+            # 回补失败不阻断主流程，仅记入 sync_log（状态变 partial）。
+            backfill_error: str | None = None
+            if full:
+                backfill = getattr(fetcher, "fetch_backfill", None)
+                if callable(backfill):
+                    try:
+                        until = min((d.issue for d in draws), default=None)
+                        draws = backfill(until=until) + draws
+                    except Exception as exc:
+                        backfill_error = f"历史回补失败：{type(exc).__name__}: {exc}"
+
             skipped_reasons = list(getattr(fetcher, "skipped", []))
+            if backfill_error:
+                skipped_reasons.append(backfill_error)
             valid: list[RawDraw] = []
             for draw in draws:
                 try:

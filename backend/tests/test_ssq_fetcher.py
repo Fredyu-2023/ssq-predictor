@@ -245,3 +245,110 @@ def test_ball_config_dict_roundtrip() -> None:
         "blue_count_max": 2,
     }
     assert BallConfig(**SSQ_CONFIG.as_dict()) == SSQ_CONFIG
+
+
+# ---------------- 历史回补（500 彩票网，2003–2012） ----------------
+
+# 500 网历史页真实行结构抽样：
+# 03001 含「快乐星期天」第二蓝球 10；12154 该列为空（&nbsp;）
+BACKFILL_ROW_2003 = (
+    '<tr class="t_tr1"><!--<td>1</td>--><td>03001</td>'
+    '<td class="t_cfont2">10</td><td class="t_cfont2">11</td><td class="t_cfont2">12</td>'
+    '<td class="t_cfont2">13</td><td class="t_cfont2">26</td><td class="t_cfont2">28</td>'
+    '<td class="t_cfont4">11</td><td class="t_cfont4">10&nbsp;</td>'
+    '<td>2,097,070</td><td>0</td><td>0</td><td>1</td><td>898,744</td>'
+    '<td>10,307,806</td><td>2003-02-23</td></tr>'
+)
+BACKFILL_ROW_2012 = (
+    '<tr class="t_tr1"><!--<td>2</td>--><td>12154</td>'
+    '<td class="t_cfont2">05</td><td class="t_cfont2">07</td><td class="t_cfont2">12</td>'
+    '<td class="t_cfont2">16</td><td class="t_cfont2">28</td><td class="t_cfont2">32</td>'
+    '<td class="t_cfont4">04</td><td class="t_cfont4">&nbsp;</td>'
+    '<td>72,256,070</td><td>5</td><td>6,000,000</td><td>137</td><td>210,394</td>'
+    '<td>349,475,260</td><td>2012-12-30</td></tr>'
+)
+
+
+def _backfill_fetcher(html_by_start: dict[str, str]) -> SSQFetcher:
+    """按 start 参数返回对应年份的 HTML；未提供的年份返回空页。"""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        start = request.url.params.get("start", "")
+        html = html_by_start.get(start, "<table></table>")
+        return httpx.Response(200, content=html.encode("gb18030", errors="replace"))
+
+    return SSQFetcher(
+        client=httpx.Client(transport=httpx.MockTransport(handler)), interval=0
+    )
+
+
+def test_backfill_parse_known_good() -> None:
+    """固定 HTML → 期号归一化（5 位 → 7 位）、红蓝球、金额、日期完全匹配。"""
+    fetcher = _backfill_fetcher({"03001": BACKFILL_ROW_2003, "12001": BACKFILL_ROW_2012})
+    draws = fetcher.fetch_backfill()
+
+    assert [d.issue for d in draws] == ["2003001", "2012154"]
+
+    first = draws[0]
+    assert first.draw_date == date(2003, 2, 23)
+    assert first.reds == [10, 11, 12, 13, 26, 28]
+    assert first.blues == [11, 10]  # 主蓝球 11 + 快乐星期天 10（→ extra_blues）
+    assert first.pool_balance == 2097070
+    assert first.sales_amount == 10307806
+    assert first.prize1_count == 0
+    assert [g["type"] for g in first.prize_details["levels"]] == [1, 2]
+
+    last = draws[1]
+    assert last.blues == [4]  # 快乐星期天列为空 → 只有主蓝球
+    assert last.prize1_count == 5
+    assert last.draw_date == date(2012, 12, 30)
+
+    # 回补结果必须通过既有球号校验（含双蓝球边界）
+    for draw in draws:
+        SSQ_CONFIG.validate(draw.reds, draw.blues)
+
+
+def test_backfill_until_filters_overlap() -> None:
+    """until 用于避开官网已覆盖的期：2003002 起只保留 2003001。"""
+    fetcher = _backfill_fetcher({"03001": BACKFILL_ROW_2003})
+    draws = fetcher.fetch_backfill(until="2003002")
+    assert [d.issue for d in draws] == ["2003001"]
+
+
+def test_backfill_bad_row_recorded_not_raised() -> None:
+    """坏行（列数不足）不中断整页，原因计入 skipped。"""
+    bad_row = '<tr class="t_tr1"><td>03001</td><td>10</td></tr>'
+    fetcher = _backfill_fetcher({"03001": BACKFILL_ROW_2003 + bad_row})
+    draws = fetcher.fetch_backfill()
+    assert [d.issue for d in draws] == ["2003001"]
+    assert any("列数" in reason for reason in fetcher.skipped)
+
+
+def test_backfill_happy_sunday_zero_is_placeholder() -> None:
+    """真实数据：非周日开奖的「快乐星期天」列填 0 占位，不得当成第二蓝球。"""
+    row_03002 = (
+        '<tr class="t_tr1"><!--<td>2</td>--><td>03002</td>'
+        '<td class="t_cfont2">04</td><td class="t_cfont2">09</td><td class="t_cfont2">19</td>'
+        '<td class="t_cfont2">20</td><td class="t_cfont2">21</td><td class="t_cfont2">26</td>'
+        '<td class="t_cfont4">12</td><td class="t_cfont4">0&nbsp;</td>'
+        '<td>8,330,621</td><td>0</td><td>0</td><td>2</td><td>264,332</td>'
+        '<td>7,398,870</td><td>2003-02-27</td></tr>'
+    )
+    fetcher = _backfill_fetcher({"03001": row_03002})
+    draws = fetcher.fetch_backfill()
+    assert draws[0].issue == "2003002"
+    assert draws[0].blues == [12]  # 0 占位被忽略，只有主蓝球
+    SSQ_CONFIG.validate(draws[0].reds, draws[0].blues)
+
+
+def test_backfill_network_failure_raises() -> None:
+    """任一年请求失败即抛 RuntimeError（由 sync_engine 捕获并记为 partial）。"""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(500, text="server error")
+
+    fetcher = SSQFetcher(
+        client=httpx.Client(transport=httpx.MockTransport(handler)), interval=0, max_retries=2
+    )
+    with pytest.raises(RuntimeError, match="历史回补失败"):
+        fetcher.fetch_backfill()

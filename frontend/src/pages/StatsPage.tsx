@@ -26,8 +26,11 @@ const RANGES: { key: string; label: string }[] = [
   { key: 'all', label: '全部' },
 ]
 
-// ---- 走势矩阵窗口选项：只影响走势表，不影响上方统计 ----
-const TREND_SIZES = ['30', '50', '100']
+// ---- 走势矩阵窗口：跟随整页 range（全部期时表格限最近 300 期，避免 1.5 万单元格卡顿） ----
+function trendWindowOf(range: string): number {
+  if (range === 'all') return 300
+  return Number(range)
+}
 
 export function StatsPage() {
   // ---- 整页统计状态（跟随 range 重算） ----
@@ -35,8 +38,7 @@ export function StatsPage() {
   const [data, setData] = useState<StatsOut | null>(null) // /api/stats 一次返回的全部统计
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // ---- 走势矩阵状态（独立取数，只跟随 trendSize） ----
-  const [trendSize, setTrendSize] = useState('30')
+  // ---- 走势矩阵状态（窗口由 range 派生，与整页联动） ----
   const [trend, setTrend] = useState<HistoryPageData | null>(null)
   const [trendLoading, setTrendLoading] = useState(false)
   const [trendError, setTrendError] = useState<string | null>(null)
@@ -61,12 +63,12 @@ export function StatsPage() {
     }
   }, [range])
 
-  // 走势矩阵独立取数：复用历史接口，只取最近 trendSize 期。
+  // 走势矩阵取数：窗口跟随整页 range（联动），复用历史接口按页取最近 N 期。
   useEffect(() => {
     let cancelled = false
     setTrendLoading(true)
     setTrendError(null)
-    apiGet<HistoryPageData>('/api/history', { type: 'ssq', page: 1, size: Number(trendSize) })
+    apiGet<HistoryPageData>('/api/history', { type: 'ssq', page: 1, size: trendWindowOf(range) })
       .then((res) => {
         if (!cancelled) setTrend(res)
       })
@@ -79,7 +81,7 @@ export function StatsPage() {
     return () => {
       cancelled = true
     }
-  }, [trendSize])
+  }, [range])
 
   // ---- 派生数据 ----
   // 冷热号 Set：给红球频次柱着色用（热=hot、冷=cold、其余=accent）
@@ -175,24 +177,14 @@ export function StatsPage() {
             </div>
           </div>
 
-          {/* ---- 多期号码走势矩阵：经典彩票走势图，号码多时可横向滑动 ---- */}
+          {/* ---- 多期号码走势矩阵：经典彩票走势图，跟随页面期数联动 ---- */}
           <div className="card">
             <div className="card-head">
               <h2>多期号码走势</h2>
-              <div className="segmented">
-                {TREND_SIZES.map((size) => (
-                  <button
-                    key={size}
-                    className={`seg${trendSize === size ? ' seg-active' : ''}`}
-                    onClick={() => setTrendSize(size)}
-                  >
-                    {size} 期
-                  </button>
-                ))}
-              </div>
+              <span className="tag tag-muted">最近 {trendWindowOf(range)} 期 · 随上方窗口联动</span>
             </div>
             {trendError && <div className="alert alert-error">{trendError}</div>}
-            {trendLoading && !trend && <div className="skeleton">走势加载中…</div>}
+            {trendLoading && <div className="skeleton">走势加载中…</div>}
             {trend && <TrendTable items={trend.items} />}
             <p className="muted-text small">
               每行一期：红球 1–33、蓝球 1–16，命中的号码以彩球标出，末行为窗口内出现次数。号码较多时可左右滑动查看。

@@ -1,8 +1,12 @@
-"""双色球数据适配器（数据源：中国福利彩票官网公开查询接口）。
+"""双色球数据适配器（主数据源：中国福利彩票官网公开查询接口）。
 
 说明：计划书原文写的是「体彩网 gameNo=85」，实测该参数返回的是超级大乐透；
 双色球属于中国福利彩票，官方接口为 cwl.gov.cn 的 findDrawNotice。
-该接口覆盖 2013-001 至今（实测 2085 期），2003–2012 的历史期不在该接口内。
+
+覆盖范围（2003-001 首期至今）：
+- 2013-001 起：官网接口 findDrawNotice 分页提供（实测 2085 期）；
+- 2003-001 至 2012 年末：官网接口不含该段，由 500 彩票网历史页回补
+  （fetch_backfill()，仅在全量同步 full=True 时触发，逐年请求）。
 """
 
 from __future__ import annotations
@@ -17,6 +21,10 @@ from .. import config
 from .base import BallConfig, BaseFetcher, RawDraw
 
 API_URL = "https://www.cwl.gov.cn/cwl_admin/front/cwlkj/search/kjxx/findDrawNotice"
+
+# 历史回补源：500 彩票网历史页（覆盖 2003-001 起；官网接口只到 2013-001）
+BACKFILL_URL = "https://datachart.500.com/ssq/history/newinc/history.php"
+BACKFILL_YEAR_RANGE = range(2003, 2013)  # 2003（首期年）到 2012（官网覆盖前一年）
 
 DEFAULT_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -146,6 +154,112 @@ class SSQFetcher(BaseFetcher):
             prize_details={"levels": grades} if grades else None,
             prize1_count=prize1_count,
         )
+
+    # ---------- 历史回补（500 彩票网，2003–2012） ----------
+
+    def _get_backfill_page(self, year: int) -> str:
+        """拉取某一年的回补页 HTML，失败按 max_retries 次重试（指数退避）。
+
+        500 网期号为 5 位「yyNNN」，start/end 按年圈定，如 2003 年 → 03001–03999。
+        页面为 GB 系编码，但我们只解析 ASCII 的数字与标签，解码错误可安全忽略。
+        """
+        yy = year % 100
+        params = {"start": f"{yy:02d}001", "end": f"{yy:02d}999"}
+        last_error: Exception | None = None
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                if self._client is not None:
+                    resp = self._client.get(BACKFILL_URL, params=params)
+                else:
+                    with httpx.Client(
+                        timeout=config.HTTP_TIMEOUT, headers=DEFAULT_HEADERS, follow_redirects=True
+                    ) as client:
+                        resp = client.get(BACKFILL_URL, params=params)
+                resp.raise_for_status()
+                return resp.content.decode("gb18030", errors="replace")
+            except httpx.HTTPError as exc:
+                last_error = exc
+                if attempt < self.max_retries:
+                    time.sleep(self.interval * (2 ** (attempt - 1)))
+        raise RuntimeError(f"{year} 年历史回补失败（重试 {self.max_retries} 次）：{last_error}")
+
+    def parse_backfill_html(self, html: str) -> list[RawDraw]:
+        """解析 500 网历史页的全部数据行；单行解析失败计入 skipped，不中断整页。"""
+        draws: list[RawDraw] = []
+        for row in re.findall(r'<tr class="t_tr1">(.*?)</tr>', html, flags=re.S):
+            try:
+                draws.append(self._parse_backfill_row(row))
+            except (ValueError, TypeError, IndexError) as exc:
+                self.skipped.append(f"回补行解析失败：{exc}")
+        return draws
+
+    @staticmethod
+    def _parse_backfill_row(row: str) -> RawDraw:
+        """解析单行，共 16 列：
+
+        期号 | 红球×6 | 蓝球 | 快乐星期天 | 奖池 | 一等奖(注数,奖金) | 二等奖(注数,奖金) | 总投注 | 日期
+        「快乐星期天」是 2003–2004 周日开奖的加开蓝球，存入 extra_blues（blues[1]）。
+        """
+        # 首列序号写在 HTML 注释里，先删注释再抓 <td>，避免误匹配
+        row = re.sub(r"<!--.*?-->", "", row, flags=re.S)
+        cells = [
+            re.sub(r"<[^>]+>", "", cell).replace("&nbsp;", "").strip()
+            for cell in re.findall(r"<td[^>]*>(.*?)</td>", row, flags=re.S)
+        ]
+        if len(cells) != 16:
+            raise ValueError(f"列数应为 16，实际 {len(cells)}")
+
+        raw_issue = cells[0]
+        if len(raw_issue) != 5 or not raw_issue.isdigit():
+            raise ValueError(f"期号格式异常：{raw_issue!r}")
+        # 期号归一化：500 网 5 位 yyNNN → 库内 7 位 yyyyNNN（03001 → 2003001）
+        issue = f"20{raw_issue[:2]}{raw_issue[2:]}"
+
+        blues = [int(cells[7])]
+        # 快乐星期天：非周日开奖期该列填「0」占位，仅在 1–16 时才算真正的加开蓝球
+        if cells[8].isdigit() and 1 <= int(cells[8]) <= 16:
+            blues.append(int(cells[8]))
+
+        prize1_count = SSQFetcher._to_int(cells[10])
+        prize1_money = SSQFetcher._to_int(cells[11])
+        prize2_count = SSQFetcher._to_int(cells[12])
+        prize2_money = SSQFetcher._to_int(cells[13])
+        levels: list[dict] = []
+        if prize1_count is not None:
+            levels.append({"type": 1, "count": prize1_count, "money": prize1_money})
+        if prize2_count is not None:
+            levels.append({"type": 2, "count": prize2_count, "money": prize2_money})
+
+        return RawDraw(
+            lottery_type="ssq",
+            issue=issue,
+            draw_date=date.fromisoformat(cells[15]),
+            reds=sorted(int(c) for c in cells[1:7]),
+            blues=blues,
+            sales_amount=SSQFetcher._to_int(cells[14]),
+            pool_balance=SSQFetcher._to_int(cells[9]),
+            prize_details={"levels": levels} if levels else None,
+            prize1_count=prize1_count,
+        )
+
+    def fetch_backfill(self, until: str | None = None) -> list[RawDraw]:
+        """回补官网接口未覆盖的 2003–2012 历史期，按期号升序返回。
+
+        until：只保留期号 < until 的记录（一般传官网覆盖的最早一期，避免重叠）；
+        逐年请求（每年约 150 期），任一年失败直接抛错，由调用方决定如何处理。
+        解析失败行的原因追加到 self.skipped（fetch() 重置后此处只增不清）。
+        """
+        draws: list[RawDraw] = []
+        years = list(BACKFILL_YEAR_RANGE)
+        for index, year in enumerate(years):
+            html = self._get_backfill_page(year)
+            for draw in self.parse_backfill_html(html):
+                if until is None or draw.issue < until:
+                    draws.append(draw)
+            if self.interval > 0 and index < len(years) - 1:
+                time.sleep(self.interval)
+        draws.sort(key=lambda d: d.issue)
+        return draws
 
     # ---------- 契约实现 ----------
 

@@ -42,7 +42,8 @@ test.describe('页面渲染', () => {
     await expect(page.locator('.trend-table tfoot td').first()).toContainText('次数')
     await expect(page.locator('.trend-ball').first()).toBeVisible()
 
-    await page.getByRole('button', { name: '100 期', exact: true }).click()
+    // 走势矩阵跟随页面顶部期数切换（联动）：切到 近 100 期后应有 100 行
+    await page.getByRole('button', { name: '近 100 期' }).click()
     await expect(page.locator('.trend-table tbody tr')).toHaveCount(100)
   })
 

@@ -235,7 +235,7 @@ footer .foot-grid { display: flex; justify-content: space-between; gap: 20px; fl
     <span class="chip">后端 <b>FastAPI · SQLAlchemy 2</b></span>
     <span class="chip">存储 <b>SQLite WAL</b></span>
     <span class="chip">前端 <b>React 18 · Vite 5 · TS</b></span>
-    <span class="chip">数据 <b>双色球 2085 期</b></span>
+    <span class="chip">数据 <b>双色球 3524 期</b></span>
     <span class="chip">文档日期 <b>2026-11-06</b></span>
   </div>
 </header>
@@ -250,7 +250,7 @@ footer .foot-grid { display: flex; justify-content: space-between; gap: 20px; fl
     <div class="card"><div class="stat">6</div><div class="stat-label">前端页面（hash 路由）</div></div>
     <div class="card"><div class="stat">14</div><div class="stat-label">REST 端点</div></div>
     <div class="card"><div class="stat">5 + N</div><div class="stat-label">内置策略 + 自定义插件</div></div>
-    <div class="card"><div class="stat">2085</div><div class="stat-label">已入库双色球期数</div></div>
+    <div class="card"><div class="stat">3524</div><div class="stat-label">已入库双色球期数</div></div>
   </div>
 
   <div class="callout">
@@ -334,7 +334,7 @@ footer .foot-grid { display: flex; justify-content: space-between; gap: 20px; fl
       <text x="680" y="192" class="svg-title s-am">外部数据源</text>
       <text x="680" y="214" class="svg-t-sm s-i">中国福利彩票官网</text>
       <text x="680" y="232" class="svg-mono s-m">cwl.gov.cn / findDrawNotice</text>
-      <text x="680" y="252" class="svg-t-sm s-m">2013-001 起 · 共 2085 期</text>
+      <text x="680" y="252" class="svg-t-sm s-m">2003-001 起 · 共 3524 期</text>
 
       <line x1="600" y1="214" x2="660" y2="214" class="st-r" stroke-width="1.3" stroke-dasharray="5 4"/>
       <polygon points="666,214 657,209 657,219" class="s-r"/>
@@ -547,7 +547,7 @@ session.commit()</pre>
 <pre class="code">GET https://www.cwl.gov.cn/cwl_admin/front/cwlkj/search/kjxx/findDrawNotice
     ?name=ssq&amp;pageNo=1&amp;pageSize=100&amp;systemType=PC</pre>
   <ul>
-    <li>覆盖 <strong>2013-001 至今</strong>（实测 2085 期，最新 2026127）；2003–2012 的历史期不在该接口内。</li>
+    <li>官网接口覆盖 <strong>2013-001 至今</strong>（实测 2085 期，最新 2026127）；2003-001 至 2012 年末由 500 彩票网历史页在全量同步时回补（1439 期），合计 <strong>2003 年首期至今 3524 期</strong>全量入库。</li>
     <li>请求头包含 UA / Referer / Accept；解析 <code>result[]</code>、<code>pageNum</code>，日期形如 <code>2026-11-05(四)</code>。</li>
     <li>来源为公开开奖信息，低频访问；同步失败不影响已有数据。</li>
   </ul>
@@ -1453,7 +1453,7 @@ cd frontend &amp;&amp; npm run test:e2e
 cd frontend &amp;&amp; npm run build</pre>
 
   <div class="callout warn">
-    <p><b>已知覆盖缺口：</b>外部数据源的真实网络失败未纳入自动化（依赖外网不稳定）；三年以上的历史期（2003–2012）不在接口中，无法验证；3D 可视化尚未实现，因此没有渲染回归；多彩种只有双色球一个真实实现，扩展路径由单元测试覆盖。</p>
+    <p><b>已知覆盖缺口：</b>外部数据源的真实网络失败未纳入自动化（依赖外网不稳定）；2003–2012 历史期经 500 彩票网回补（含「快乐星期天」加开蓝球解析），其行结构变化靠单元测试样本兜底；3D 可视化尚未实现，因此没有渲染回归；多彩种只有双色球一个真实实现，扩展路径由单元测试覆盖。</p>
   </div>
 </section>
 
@@ -1493,7 +1493,7 @@ cd frontend &amp;&amp; npm run build</pre>
       <thead><tr><th>风险</th><th>影响</th><th>现有缓解</th><th>状态</th></tr></thead>
       <tbody>
         <tr><td>外部接口变更 / 不可用</td><td>无法获取新期</td><td>全量/增量可重试；失败写日志不阻塞服务；已有数据可读</td><td><span class="tag warn">持续</span></td></tr>
-        <tr><td>历史覆盖不全</td><td>2003–2012 缺失</td><td>页面标注数据范围；统计以实际入库期数为准</td><td><span class="tag warn">已知</span></td></tr>
+        <tr><td>历史覆盖不全</td><td>官网接口仅 2013-001 起</td><td>2003–2012 由 500 彩票网回补；回补失败仅记日志不阻断主同步</td><td><span class="tag ok">已解决</span></td></tr>
         <tr><td>SQLite 写并发</td><td>同步与手动触发竞争</td><td>彩种级互斥锁 + busy 返回 + WAL</td><td><span class="tag ok">已缓解</span></td></tr>
         <tr><td>插件任意代码执行</td><td>本机安全</td><td>仅受信目录；文档安全声明；不做网络分发</td><td><span class="tag err">接受</span></td></tr>
         <tr><td>统计显著性被误读</td><td>用户以为策略有效</td><td>结论文案硬编码；免责声明常驻；随机基线保留</td><td><span class="tag ok">已控制</span></td></tr>

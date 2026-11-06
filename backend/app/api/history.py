@@ -52,7 +52,7 @@ def _check_type(lottery_type: str) -> str:
 def history(
     type: str = Query(default="ssq"),
     page: int = Query(default=1, ge=1),
-    size: int = Query(default=50, ge=1, le=200),
+    size: int = Query(default=50, ge=1, le=500),  # 上限 500：统计页走势矩阵「全部」档一次取 300 期
     q: str | None = Query(default=None, max_length=50, description="按期号或开奖日期搜索"),
     session: Session = Depends(db.get_db),
 ) -> HistoryPage:
